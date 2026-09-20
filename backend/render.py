@@ -181,20 +181,25 @@ def build_canvas(cover: Path | None, dest: Path) -> Path:
 
 def render_video(
     audio: Path,
-    subtitles: Path,
     canvas: Path,
     dest: Path,
     duration: float | None = None,
 ) -> Path:
-    """Mux canvas + audio + subtitles into an MP4."""
+    """Cover image + audio into a clean MP4, carrying no subtitle track.
+
+    Subtitle-free on purpose. This is the file for YouTube, where captions are
+    attached separately as an .srt: YouTube's handling of an embedded mov_text
+    track is unreliable, and uploading the .srt is the supported route.
+
+    This is the expensive step - `mux_subtitles` reuses its output instead of
+    encoding a second time.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
         "ffmpeg", "-hide_banner", "-v", "error", "-y",
         "-loop", "1", "-r", str(settings.video_fps), "-i", str(canvas),
         "-i", str(audio),
-        # Declare the format: ffmpeg will not always sniff an srt correctly.
-        "-f", "srt", "-i", str(subtitles),
     ]
     if duration:
         cmd += ["-t", f"{duration:.3f}"]
@@ -203,14 +208,12 @@ def render_video(
 
     encoder = resolve_encoder()
     cmd += [
-        "-map", "0:v", "-map", "1:a", "-map", "2:s",
+        "-map", "0:v", "-map", "1:a",
         # Carry chapter marks through; harmless where they are ignored.
         "-map_chapters", "1",
         "-c:v", encoder,
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "128k",
-        # mov_text is the only subtitle codec MP4 carries.
-        "-c:s", "mov_text",
         # Lets a player start without reading the whole file first.
         "-movflags", "+faststart",
     ]
@@ -228,4 +231,36 @@ def render_video(
         err = proc.stderr.decode("utf-8", errors="replace").strip().splitlines()
         tail = " | ".join(err[-3:]) if err else "no output"
         raise RenderError(f"ffmpeg could not build the video: {tail}")
+    return dest
+
+
+def mux_subtitles(video: Path, subtitles: Path, dest: Path) -> Path:
+    """Copy `video` into an MKV carrying `subtitles` as a selectable track.
+
+    For local playback - MPV, VLC, Jellyfin - where one self-contained file
+    beats juggling a video and a sidecar .srt.
+
+    MKV rather than MP4 because MKV stores SRT natively, keeping the cue text
+    intact; MP4 must convert to mov_text, which is a lossy reduction. Nothing
+    is re-encoded here: the streams are copied, so this costs seconds however
+    long the book is.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg", "-hide_banner", "-v", "error", "-y",
+        "-i", str(video),
+        # Declare the format; ffmpeg does not always sniff an srt correctly.
+        "-f", "srt", "-i", str(subtitles),
+        "-map", "0", "-map", "1",
+        "-c", "copy", "-c:s", "srt",
+        # Players pick this up automatically instead of needing it turned on.
+        "-disposition:s:0", "default",
+        "-metadata:s:s:0", "title=Aligned subtitles",
+        str(dest),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, timeout=1800)
+    if proc.returncode != 0 or not dest.exists():
+        err = proc.stderr.decode("utf-8", errors="replace").strip().splitlines()
+        tail = " | ".join(err[-3:]) if err else "no output"
+        raise RenderError(f"ffmpeg could not embed the subtitles: {tail}")
     return dest

@@ -95,6 +95,14 @@ class Aligner(ABC):
         """Anything the user should know about this language, or None."""
         return None
 
+    def failure_reason(self, req: "AlignRequest") -> str | None:
+        """Why the run produced nothing, if the backend left an explanation.
+
+        Needed because a backend may exit 0 and still have failed, so the exit
+        code alone cannot be trusted to mean success.
+        """
+        return None
+
 
 # ---------------------------------------------------------------------------
 # subplz
@@ -268,6 +276,27 @@ class SubPlzAligner(Aligner):
             return expected
         # Fall back in case upstream changes the convention.
         return next(iter(sorted(req.out_dir.glob("*.srt"))), None)
+
+    def failure_reason(self, req: AlignRequest) -> str | None:
+        """Read subplz's own explanation out of the .subfail it leaves behind.
+
+        subplz exits 0 even when a sync fails, so the exit code cannot be
+        trusted. Without this the runner reports "the audio and text may not
+        match" for every failure - including ones that have nothing to do with
+        the content, such as a broken library.
+        """
+        for fail in sorted(req.out_dir.glob("*.subfail")):
+            try:
+                text = fail.read_text(encoding="utf-8", errors="replace").strip()
+            except OSError:
+                continue
+            if not text:
+                continue
+            # The file repeats the audio path on every line; keep the last
+            # line, which carries the actual reason.
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+            return lines[-1] if lines else None
+        return None
 
     def language_note(self, code: str) -> str | None:
         lang = languages.get(code)

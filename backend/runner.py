@@ -470,6 +470,11 @@ def _collect_artifacts(job_id: str, paths: Paths, log_path: Path,
 
     produced = aligner.locate_output(request)
     if produced is None or not produced.exists():
+        # The backend may exit 0 and still have failed, so ask it why before
+        # falling back to guessing at the content.
+        reason = aligner.failure_reason(request)
+        if reason:
+            raise JobFailed(f"{aligner.name} failed: {reason}")
         raise JobFailed(
             f"{aligner.name} finished but produced no subtitle file. The audio "
             "and text may not match, or the language may be wrong for this book."
@@ -485,22 +490,43 @@ def _collect_artifacts(job_id: str, paths: Paths, log_path: Path,
     srt_key = f"{job_id}/{download_name}"
     size = storage.put_file(srt_key, produced)
 
+    # Three deliverables, because they serve three different jobs:
+    #   .srt  - the timing file on its own (HoshiReader whispersync)
+    #   .mp4  - clean video, no subtitle track, for YouTube (captions are
+    #           uploaded separately there)
+    #   .mkv  - the same video with the subtitles embedded, for local players
+    # The mkv is a stream copy of the mp4, so the second file is nearly free.
     video_name = video_key = None
-    video_size = 0
+    embed_name = embed_key = None
+    video_size = embed_size = 0
+
     if settings.render_video:
         try:
             _set(job_id, stage="Rendering video", progress=0.94)
             scratch = paths.root / "video"
             cover = render.extract_cover(request.text, scratch)
             canvas = render.build_canvas(cover, scratch / "canvas.png")
+
             video_name = f"{stem}.{language}.mp4"
             out_video = scratch / video_name
             render.render_video(
-                audio=video_audio, subtitles=produced, canvas=canvas,
+                audio=video_audio, canvas=canvas,
                 dest=out_video, duration=duration,
             )
             video_key = f"{job_id}/{video_name}"
             video_size = storage.put_file(video_key, out_video)
+
+            try:
+                _set(job_id, stage="Embedding subtitles", progress=0.97)
+                embed_name = f"{stem}.{language}.mkv"
+                out_embed = scratch / embed_name
+                render.mux_subtitles(out_video, produced, out_embed)
+                embed_key = f"{job_id}/{embed_name}"
+                embed_size = storage.put_file(embed_key, out_embed)
+            except Exception as exc:  # noqa: BLE001
+                embed_name = embed_key = None
+                log.warning("job %s: subtitle embed failed: %s", job_id, exc)
+
         except Exception as exc:  # noqa: BLE001 - never fail a job over the video
             # The subtitles are the product, so a failed render is not fatal -
             # but it must not be silent either, or it looks like it never ran.
@@ -538,10 +564,22 @@ def _collect_artifacts(job_id: str, paths: Paths, log_path: Path,
             {
                 "filename": video_name,
                 "container": "mp4",
-                "subtitles": "soft track (mov_text)",
+                "subtitles": "none - upload the .srt to YouTube separately",
+                "for": "youtube",
                 "size_bytes": video_size,
             }
             if video_name
+            else None
+        ),
+        "video_embedded": (
+            {
+                "filename": embed_name,
+                "container": "mkv",
+                "subtitles": "embedded SRT track, enabled by default",
+                "for": "local playback (MPV, VLC, Jellyfin)",
+                "size_bytes": embed_size,
+            }
+            if embed_name
             else None
         ),
     }
@@ -561,6 +599,11 @@ def _collect_artifacts(job_id: str, paths: Paths, log_path: Path,
         rows.append(
             Artifact(job_id=job_id, kind="video", filename=video_name,
                      storage_key=video_key, size_bytes=video_size)
+        )
+    if embed_name and embed_key:
+        rows.append(
+            Artifact(job_id=job_id, kind="video_embedded", filename=embed_name,
+                     storage_key=embed_key, size_bytes=embed_size)
         )
     with SessionLocal() as s:
         for r in rows:

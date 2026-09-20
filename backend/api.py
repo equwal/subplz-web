@@ -488,7 +488,7 @@ def delete_job(
 @router.get("/jobs/{job_id}/files/{kind}")
 def download(
     job_id: str,
-    kind: Literal["srt", "video", "metadata", "log"],
+    kind: Literal["srt", "video", "video_embedded", "metadata", "log"],
     account: Annotated[Account, Depends(get_account)],
     session: Annotated[Session, Depends(get_session)],
 ):

@@ -391,20 +391,29 @@ function jobCard(j) {
 
   const files = j.artifacts || [];
   if (files.length) {
-    const order = { srt: 0, video: 1, metadata: 2, log: 3 };
+    const order = { srt: 0, video: 1, video_embedded: 2, metadata: 3, log: 4 };
+    // Three deliverables for three different uses; say which is which, because
+    // "two video files" is otherwise baffling.
     const label = {
       srt: '⬇ Subtitles (.srt)',
-      video: '⬇ Video (.mp4)',
+      video: '⬇ Video for YouTube (.mp4)',
+      video_embedded: '⬇ Video with subs built in (.mkv)',
       metadata: 'Metadata',
       log: 'Run log',
     };
-    const primary = new Set(['srt', 'video']);
+    const hint = {
+      srt: 'For HoshiReader, or upload alongside the YouTube video',
+      video: 'No subtitles baked in — add the .srt in YouTube Studio',
+      video_embedded: 'Subtitles inside the file, for MPV/VLC',
+    };
+    const primary = new Set(['srt', 'video', 'video_embedded']);
     html += '<div class="job-files">' + files
       .slice()
       .sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
       .map((a) => {
         const size = a.size_bytes ? ` <span class="dl-size">${fmtBytes(a.size_bytes)}</span>` : '';
-        return `<a class="dl ${primary.has(a.kind) ? '' : 'secondary'}"
+        const t = hint[a.kind] ? ` title="${escapeHtml(hint[a.kind])}"` : '';
+        return `<a class="dl ${primary.has(a.kind) ? '' : 'secondary'}"${t}
                    href="${a.url}" download>${label[a.kind] || a.kind}${size}</a>`;
       })
       .join('') + '</div>';
