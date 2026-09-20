@@ -251,7 +251,12 @@ def mux_subtitles(video: Path, subtitles: Path, dest: Path) -> Path:
         "-i", str(video),
         # Declare the format; ffmpeg does not always sniff an srt correctly.
         "-f", "srt", "-i", str(subtitles),
-        "-map", "0", "-map", "1",
+        # Map video and audio explicitly rather than "-map 0": an MP4 carries
+        # its chapters as a bin_data track, and Matroska accepts only audio,
+        # video and subtitle streams - it refuses the file outright otherwise.
+        # Chapters still survive via -map_chapters, being container metadata.
+        "-map", "0:v", "-map", "0:a", "-map", "1:s",
+        "-map_chapters", "0",
         "-c", "copy", "-c:s", "srt",
         # Players pick this up automatically instead of needing it turned on.
         "-disposition:s:0", "default",
