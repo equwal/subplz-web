@@ -117,16 +117,21 @@ def test_requests_are_rate_limited(client, outbox):
     assert codes[:5] == [200] * 5 and set(codes[5:]) == {429}
 
 
-def test_public_server_without_smtp_refuses_instead_of_leaking_the_link(client):
-    # billing on (public) + no SMTP host: showing the link would let anyone
-    # sign in as anyone.
+@pytest.mark.parametrize("billing", [True, False])
+def test_server_without_smtp_refuses_instead_of_leaking_the_link(
+    client, monkeypatch, billing
+):
+    # No mail server: showing the link instead would let anyone sign in as
+    # anyone. Billing being off must not soften this - a public server can
+    # perfectly well have billing off.
+    monkeypatch.setattr(settings, "billing_enabled", billing)
     r = client.post("/api/auth/request", json={"email": "x@example.com"})
-    assert r.status_code == 503
+    assert r.status_code == 503 and "dev_link" not in r.text
     assert client.get("/api/account").json()["email_sign_in_available"] is False
 
 
-def test_localhost_hands_the_link_back(client, monkeypatch):
-    monkeypatch.setattr(settings, "billing_enabled", False)
+def test_dev_mode_hands_the_link_back_only_when_asked_to(client, monkeypatch):
+    monkeypatch.setattr(settings, "dev_login_links", True)
     r = client.post("/api/auth/request", json={"email": "dev@example.com"})
     assert r.status_code == 200 and r.json()["sent"] is False
     link = r.json()["dev_link"]

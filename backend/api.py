@@ -281,9 +281,7 @@ def _account_out(session: Session, account: Account) -> AccountOut:
         email=account.email,
         billing_enabled=settings.billing_enabled,
         payments_available=settings.payments_configured,
-        email_sign_in_available=(
-            settings.email_configured or not settings.billing_enabled
-        ),
+        email_sign_in_available=settings.sign_in_available,
         free_allowance=ent.free_allowance,
         free_window_hours=ent.window_hours,
         free_tier_summary=pricing.free_tier_summary(),
@@ -329,9 +327,9 @@ def request_sign_in(
     except accounts.InvalidEmail as exc:
         raise HTTPException(400, str(exc)) from exc
 
-    # A public server that cannot send mail has no safe way to do this: the
-    # only fallback is showing the link, which would sign anyone in as anyone.
-    if settings.billing_enabled and not settings.email_configured:
+    # A server that cannot send mail has no safe way to do this: the only
+    # fallback is showing the link, which would sign anyone in as anyone.
+    if not settings.sign_in_available:
         raise HTTPException(
             503, "Email sign-in is not set up on this server yet."
         )
@@ -347,9 +345,7 @@ def request_sign_in(
         raise HTTPException(502, str(exc)) from exc
 
     out = {"sent": sent, "email": email}
-    if not sent:
-        # Localhost only (guarded above): there is no mailbox to check, so
-        # hand the link straight back.
+    if not sent and settings.dev_login_links:
         out["dev_link"] = link
     return out
 

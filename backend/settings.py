@@ -79,8 +79,7 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
 
     # Sign-in links go out over plain SMTP, so any provider works. With no
-    # host set the link is written to the server log instead - fine for
-    # localhost, and it keeps sign-in testable without an email account.
+    # host set, sign-in is simply unavailable (see dev_login_links below).
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
@@ -88,6 +87,10 @@ class Settings(BaseSettings):
     smtp_from: str = "SubRead <login@subread.space>"
     smtp_starttls: bool = True
     login_link_minutes: int = 30
+    # Hand the sign-in link back in the API response instead of mailing it.
+    # For development ONLY: it signs anyone in as any address. Never inferred
+    # from other settings - a public server with billing off is still public.
+    dev_login_links: bool = False
 
     # --- match check -------------------------------------------------------
     # Transcribe a few short samples on upload and score them against the book,
@@ -118,6 +121,10 @@ class Settings(BaseSettings):
     @property
     def email_configured(self) -> bool:
         return bool(self.smtp_host)
+
+    @property
+    def sign_in_available(self) -> bool:
+        return self.email_configured or self.dev_login_links
 
     @property
     def resolved_database_url(self) -> str:

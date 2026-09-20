@@ -16,13 +16,13 @@ class MailError(RuntimeError):
 
 
 def send_login_link(to: str, url: str) -> bool:
-    """Email a sign-in link. Returns False when it was only logged.
+    """Email a sign-in link. Returns False when there is no mail server.
 
-    With no SMTP host configured the link goes to the server log, which keeps
-    sign-in usable on localhost without an email account to send from.
+    That only happens in development (dev_login_links), where the API hands
+    the link back itself. It is deliberately not logged: a sign-in link in a
+    log file is a credential in a log file.
     """
     if not settings.email_configured:
-        log.info("sign-in link for %s: %s", to, url)
         return False
 
     minutes = settings.login_link_minutes
