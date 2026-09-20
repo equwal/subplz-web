@@ -109,6 +109,23 @@ def staged_text_path(job_id: str, original_name: str) -> Path:
     return Paths.for_job(job_id).inp / f"{STAGE_STEM}{text_suffix(original_name)}"
 
 
+def staged_cover_path(job_id: str, original_name: str) -> Path:
+    """Where a user-supplied cover image is staged.
+
+    Kept out of the `input/` root alongside audio and text so the aligner's
+    directory scan cannot mistake a picture for content.
+    """
+    inp = Paths.for_job(job_id).inp
+    return inp / "cover" / f"cover{Path(original_name).suffix.lower()}"
+
+
+def find_cover(job_id: str) -> Path | None:
+    folder = Paths.for_job(job_id).inp / "cover"
+    if not folder.is_dir():
+        return None
+    return next((p for p in sorted(folder.iterdir()) if p.is_file()), None)
+
+
 def staged_part_path(job_id: str, index: int, original_name: str) -> Path:
     """Where chapter file `index` (1-based) of a multi-part audiobook is staged.
 
@@ -504,7 +521,8 @@ def _collect_artifacts(job_id: str, paths: Paths, log_path: Path,
         try:
             _set(job_id, stage="Rendering video", progress=0.94)
             scratch = paths.root / "video"
-            cover = render.extract_cover(request.text, scratch)
+            # A cover the user supplied wins over the one inside the epub.
+            cover = find_cover(job_id) or render.extract_cover(request.text, scratch)
             canvas = render.build_canvas(cover, scratch / "canvas.png")
 
             video_name = f"{stem}.{language}.mp4"

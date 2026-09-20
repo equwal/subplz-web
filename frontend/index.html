@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SubPlz — Audiobook to Subtitles</title>
-<link rel="stylesheet" href="/style.css?v=6">
+<link rel="stylesheet" href="/style.css?v=8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 </head>
 <body>
@@ -37,7 +37,7 @@
   <section id="dropzone" class="dropzone" tabindex="0" role="button"
            aria-label="Drop an audio file and an ebook, or click to choose files">
     <input type="file" id="filepicker" multiple hidden
-           accept=".m4b,.m4a,.mp3,.opus,.ogg,.oga,.flac,.wav,.aac,.wma,.mka,.mkv,.mp4,.webm,.avi,.mov,.epub,.txt,.srt,.vtt,.ass,.fb2,.zip,.mobi,.azw,.azw3,.prc">
+           accept=".jpg,.jpeg,.png,.webp,.bmp,.m4b,.m4a,.mp3,.opus,.ogg,.oga,.flac,.wav,.aac,.wma,.mka,.mkv,.mp4,.webm,.avi,.mov,.epub,.txt,.srt,.vtt,.ass,.fb2,.zip,.mobi,.azw,.azw3,.prc">
     <div class="dz-inner">
       <div class="dz-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -52,6 +52,8 @@
         Or <button type="button" id="browse" class="linkbtn">browse</button>.</p>
       <p class="dz-formats">Audio: m4b · mp3 · m4a · opus · flac · wav · mkv
         &nbsp;|&nbsp; Book: epub · fb2 · mobi · azw3 · txt</p>
+      <p class="dz-formats" id="cover-hint">Optional: drop a jpg or png to use as the
+        video background — <strong>sign in required</strong></p>
     </div>
   </section>
 
@@ -64,6 +66,14 @@
         <div class="slot-value">Waiting for an audio file</div>
       </div>
       <button type="button" class="slot-x" data-slot="audio" title="Remove">×</button>
+    </div>
+    <div class="slot" id="slot-cover" hidden>
+      <span class="slot-tick" aria-hidden="true"></span>
+      <div class="slot-body">
+        <div class="slot-label">Cover image</div>
+        <div class="slot-value">Waiting for an image</div>
+      </div>
+      <button type="button" class="slot-x" data-slot="cover" title="Remove">×</button>
     </div>
     <div class="slot" id="slot-text">
       <span class="slot-tick" aria-hidden="true"></span>
@@ -130,6 +140,6 @@
   </p>
 </footer>
 
-<script src="/app.js?v=7"></script>
+<script src="/app.js?v=8"></script>
 </body>
 </html>

@@ -27,12 +27,18 @@ class DetectionError(ValueError):
     pass
 
 
+# Cover art for the rendered video. Optional, and gated behind sign-in.
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+
 @dataclass(frozen=True)
 class Pairing:
     # One entry for a single-file audiobook, many for a per-chapter set, in
     # playback order.
     audio_names: list[str]
     text_name: str
+    # A picture to put behind the video, if one was dropped in.
+    cover_name: str | None = None
 
     @property
     def is_multipart(self) -> bool:
@@ -56,9 +62,10 @@ def natural_key(name: str) -> tuple:
 
 
 def classify(filenames: list[str]) -> Pairing:
-    """Split dropped filenames into the audio part(s) and the one text file."""
+    """Split dropped filenames into the audio part(s), the text, and any cover."""
     audio = [n for n in filenames if Path(n).suffix.lower() in AUDIO_SUFFIXES]
     text = [n for n in filenames if Path(n).suffix.lower() in TEXT_SUFFIXES]
+    images = [n for n in filenames if Path(n).suffix.lower() in IMAGE_SUFFIXES]
 
     if not audio:
         raise DetectionError(
@@ -84,6 +91,8 @@ def classify(filenames: list[str]) -> Pairing:
     return Pairing(
         audio_names=sorted(audio, key=natural_key),
         text_name=text[0],
+        # Last one wins, so re-dropping an image replaces the previous choice.
+        cover_name=images[-1] if images else None,
     )
 
 

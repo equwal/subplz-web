@@ -27,8 +27,8 @@ from .aligner import aligner
 from .db import Account, Artifact, Job, JobStatus, SessionLocal, new_id, utcnow
 from .queue import queue
 from .runner import (
-    Paths, input_prefix, probe_duration, staged_audio_path, staged_part_path,
-    staged_text_path,
+    Paths, input_prefix, probe_duration, staged_audio_path, staged_cover_path,
+    staged_part_path, staged_text_path,
 )
 from .settings import settings
 from .storage import LocalStorage, storage
@@ -118,6 +118,7 @@ class JobOut(BaseModel):
     model: str
     audio_filename: str
     audio_parts: int
+    cover_filename: str | None
     text_filename: str
     audio_bytes: int
     audio_duration_seconds: float | None
@@ -129,6 +130,8 @@ class JobOut(BaseModel):
 class UploadOut(BaseModel):
     job: JobOut
     detected: DetectionOut
+    # Set when an image was dropped but the visitor is not signed in.
+    cover_requires_sign_in: bool = False
     # How well the book scores against a sample of the audio, using the
     # backend's own rule. None when the check is disabled.
     match: dict | None = None
@@ -141,6 +144,8 @@ class StartIn(BaseModel):
 
 class AccountOut(BaseModel):
     id: str
+    signed_in: bool
+    email: str | None
     billing_enabled: bool
     free_allowance: int
     free_window_hours: int
@@ -167,6 +172,7 @@ def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
         model=job.model,
         audio_filename=job.audio_filename,
         audio_parts=job.audio_parts or 1,
+        cover_filename=job.cover_filename,
         text_filename=job.text_filename,
         audio_bytes=job.audio_bytes,
         audio_duration_seconds=job.audio_duration_seconds,
@@ -221,6 +227,8 @@ def get_account_info(
     ent = billing.check(session, account)
     return AccountOut(
         id=account.id,
+        signed_in=account.signed_in,
+        email=account.email,
         billing_enabled=settings.billing_enabled,
         free_allowance=ent.free_allowance,
         free_window_hours=ent.window_hours,
@@ -304,6 +312,20 @@ async def create_upload(
         if not audio_paths:
             raise HTTPException(400, "Upload did not include any audio.")
 
+        # Custom cover art is a signed-in feature. Say so plainly rather than
+        # accepting the file and quietly ignoring it: the UI labels the drop
+        # zone before anyone picks an image, and this is the backstop.
+        cover_name = None
+        cover_blocked = False
+        if pairing.cover_name:
+            if account.signed_in:
+                upload = by_name.get(pairing.cover_name)
+                if upload is not None:
+                    await _save(upload, staged_cover_path(job_id, pairing.cover_name))
+                    cover_name = pairing.cover_name
+            else:
+                cover_blocked = True
+
         detection = detect.detect_language(detect.extract_text_sample(text_path))
         # Parts are merged at run time, so total the durations here.
         durations = [probe_duration(p) for p in audio_paths]
@@ -331,6 +353,7 @@ async def create_upload(
             audio_filename=pairing.display_name,
             text_filename=pairing.text_name,
             audio_parts=len(audio_paths),
+            cover_filename=cover_name,
             audio_bytes=sum(p.stat().st_size for p in audio_paths),
             audio_duration_seconds=duration,
             stage="Ready to start",
@@ -356,6 +379,7 @@ async def create_upload(
             supported=detection.supported,
         ),
         match=match.as_dict(),
+        cover_requires_sign_in=cover_blocked,
     )
 
 

@@ -88,6 +88,14 @@ function setLanguage(code) {
 async function refreshQuota() {
   try {
     const a = await api('/api/account');
+    signedIn = !!a.signed_in;
+    const hint = document.getElementById('cover-hint');
+    if (hint) {
+      hint.innerHTML = signedIn
+        ? 'Optional: drop a jpg or png to use as the video background'
+        : 'Optional: drop a jpg or png to use as the video background — ' +
+          '<strong>sign in required</strong>';
+    }
     if (a.free_tier_summary && el.freetier) {
       el.freetier.textContent = a.free_tier_summary.replace(/^./, (c) => c.toUpperCase()) + '.';
     }
@@ -110,16 +118,28 @@ async function refreshQuota() {
    inside audiobook folders. */
 const AUDIO_RE = /\.(m4b|m4a|mp3|opus|ogg|oga|flac|wav|aac|wma|mka|mkv|mp4|webm|avi|mov)$/i;
 const TEXT_RE = /(\.fb2\.zip|\.(epub|txt|srt|vtt|ass|fb2|mobi|azw|azw3|prc))$/i;
+const IMAGE_RE = /\.(jpe?g|png|webp|bmp)$/i;
 
-const staged = { audio: [], text: null };
+const staged = { audio: [], text: null, cover: null };
+let signedIn = false;
 
 function addFiles(files) {
   clearError();
   const list = [...files];
   const audio = list.filter((f) => AUDIO_RE.test(f.name));
   const text = list.filter((f) => TEXT_RE.test(f.name));
+  const images = list.filter((f) => IMAGE_RE.test(f.name));
 
-  if (!audio.length && !text.length) {
+  // Say up front that a cover needs an account, rather than accepting the file
+  // and springing it on them after they have waited for a render.
+  if (images.length && !signedIn) {
+    showError('Using your own cover image needs an account — sign in first, ' +
+              'and it will be applied to the video. The rest works without one.');
+  } else if (images.length) {
+    staged.cover = images[images.length - 1];
+  }
+
+  if (!audio.length && !text.length && !images.length) {
     showError('Nothing usable in that drop — expected an audiobook or an ebook.');
     return;
   }
@@ -134,6 +154,7 @@ function addFiles(files) {
   if (text.length) staged.text = text[text.length - 1];
 
   renderStaged();
+  if (!audio.length && !text.length) return;  // an image alone is not a job
   if (staged.audio.length && staged.text) {
     uploadFiles([...staged.audio, staged.text]);
   }
@@ -150,6 +171,13 @@ function renderStaged() {
         ? `${staged.audio[0].name} + ${staged.audio.length - 1} more`
         : staged.audio[0].name)
     : 'Waiting for an audio file';
+
+  const cv = $('slot-cover');
+  cv.hidden = !staged.cover;
+  if (staged.cover) {
+    cv.classList.add('filled');
+    cv.querySelector('.slot-value').textContent = staged.cover.name;
+  }
 
   const t = $('slot-text');
   t.classList.toggle('filled', !!staged.text);
@@ -169,12 +197,14 @@ function renderStaged() {
 function clearStaged() {
   staged.audio = [];
   staged.text = null;
+  staged.cover = null;
   renderStaged();
 }
 
 document.querySelectorAll('.slot-x').forEach((btn) => {
   btn.addEventListener('click', () => {
     if (btn.dataset.slot === 'audio') staged.audio = [];
+    else if (btn.dataset.slot === 'cover') staged.cover = null;
     else staged.text = null;
     renderStaged();
   });
@@ -193,6 +223,7 @@ function uploadFiles(files) {
 
   const form = new FormData();
   for (const f of list) form.append('files', f, f.name);
+  if (staged.cover && signedIn) form.append('files', staged.cover, staged.cover.name);
 
   // XHR rather than fetch: it reports upload progress, and these files are big.
   const xhr = new XMLHttpRequest();
@@ -211,7 +242,14 @@ function uploadFiles(files) {
   xhr.onload = () => {
     el.uploading.hidden = true;
     if (xhr.status >= 200 && xhr.status < 300) {
-      try { showConfirm(JSON.parse(xhr.responseText)); }
+      try {
+        const body = JSON.parse(xhr.responseText);
+        if (body.cover_requires_sign_in) {
+          showError('Your cover image was not used — that needs an account. ' +
+                    'Everything else ran normally.');
+        }
+        showConfirm(body);
+      }
       catch { showError('Server sent an unreadable response.'); resetToDrop(); }
     } else {
       let msg = `Upload failed (${xhr.status}).`;

@@ -74,6 +74,16 @@ class Account(Base):
 
     jobs: Mapped[list["Job"]] = relationship(back_populates="account")
 
+    @property
+    def signed_in(self) -> bool:
+        """Whether this is a real account rather than an anonymous cookie.
+
+        Gates the features that cost us money or need someone to bill. An
+        anonymous visitor still gets their free book; they just cannot attach
+        a custom cover.
+        """
+        return bool(self.email)
+
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -96,6 +106,9 @@ class Job(Base):
     # 1 for a single file; higher when the book arrived as per-chapter parts
     # that get merged before alignment.
     audio_parts: Mapped[int] = mapped_column(Integer, default=1)
+    # Custom cover art for the rendered video. Requires a signed-in account;
+    # anonymous jobs fall back to the epub's own cover.
+    cover_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
     audio_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
     audio_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 
