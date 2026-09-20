@@ -85,56 +85,79 @@ See [Will this text even match?](#will-this-text-even-match).
 subplz fails late and unhelpfully when the text does not match the audio: it
 transcribes the whole book, then reports "the generated transcript and the
 provided text file are too different" and writes a `.subfail`. On CPU that is a
-wasted hour.
+wasted hour. This app answers the question on upload, in seconds — and answers it
+better than subplz can.
 
-So the app asks the same question on upload, using subplz's own rule —
-transcribe a 60-second sample from the start of up to three chapters, score each
-against every chapter of the book with `rapidfuzz.fuzz.ratio`, and compare
-against subplz's `SCORE_THRESHOLD = 40`. It costs a few seconds.
+### Why a fixed threshold cannot work
 
-Measured on real files:
+subplz compares chapters with `rapidfuzz.fuzz.ratio` against a constant
+`SCORE_THRESHOLD = 40`. What two *unrelated* chapters score depends entirely on
+how many characters the script has:
 
-| Pair | Score | Verdict |
-|---|---|---|
-| Moskva-Petushki audio + its own epub | **74.4** | good |
-| Moskva-Petushki audio + an unrelated Russian novel | **40.5** | poor |
-
-That second row is the important one. An unrelated book in the same language
-still clears subplz's threshold of 40, because two prose texts in one language
-are roughly 40% similar character-by-character whatever they say. So the bands
-here sit well above it: good at ≥60, marginal at ≥48, poor below. A poor score
-warns and relabels the button "Start anyway" — it never blocks, because the
-check only samples, and it is your book.
-
-### What actually improves the score
-
-Two things were tried and measured, and only one of them works.
-
-**Chapter structure — decisive.** subplz compares the *opening* of each audio
-chapter against the *opening* of each text chapter, capped at 2000 characters.
-It splits an epub into one text chapter per spine document, but a `.txt` into
-exactly one chapter for the whole file. Same book, same audio:
-
-| Text given to subplz | Score |
+| noise floor, unrelated chapters of one book | `fuzz.ratio` |
 |---|---|
-| epub, per chapter | **69.1** |
-| identical text as one flat file | **38.6** — *below the threshold* |
+| Japanese | 23 – 26 |
+| Russian | 39 |
+| Spanish | 44 |
+| English | 45 – 47 |
 
-A flat text file turns a perfectly good book into a failed run. That is why
-`convert.py` emits a chaptered epub rather than plain text, and why the app
-warns when a one-document book is paired with multi-chapter audio.
+For English and Spanish the floor is **above 40**, so unrelated chapters clear
+the gate and it discriminates nothing. The constant suits Japanese, which is what
+it was tuned on: thousands of distinct characters make coincidental similarity
+rare, while twenty-six letters make it inevitable. Cleaning does not help — a
+generic punctuation strip moved English only 45.3 → 42.4, because the cause is
+alphabet size, not typography.
 
-**Typographic cleanup — no effect, so it was dropped.** Normalising curly
-quotes, em dashes, soft hyphens, non-breaking spaces and footnote markers
-measured **+0.0** against a real transcript. Joining paragraphs with a space
-instead of subplz's empty string was worth +0.3. Both are noise next to
-chapterisation, and shipping them would have been dead code. (This is the one
-place it matters that `ats/lang.py` implements only Japanese and English —
-every other language falls back to `English`, whose `clean()` is nothing but
-`.lower()`, so punctuation is compared verbatim. It still does not move the
-number.)
+### What this app does instead — `backend/chapters.py`
 
-Disable the check with `SUBPLZ_WEB_MATCH_CHECK=false`.
+**Character 4-gram overlap, not edit distance.** Measured against the same audio:
+
+| metric | ru floor | en floor | ja floor | true match | runner-up | separation |
+|---|---|---|---|---|---|---|
+| `fuzz.ratio` | 39.2 | 45.1 | 26.1 | 86.3 | 40.8 | 2.1× |
+| word Jaccard | 10.4 | 17.7 | 1.9 | 63.2 | 14.8 | 4.3× |
+| **4-gram Jaccard** | **4.8** | **10.6** | **2.5** | 53.3 | 5.6 | **9.5×** |
+
+n-grams rather than words because many languages do not separate words with
+spaces — a word-level metric collapses on Japanese, where a "word" is a whole run
+of characters. Set intersection is also cheaper than edit distance.
+
+**A threshold calibrated per book, not per release.** Before judging anything,
+the app samples ~150 unrelated chapter pairs *from the book in hand* to learn what
+it scores by chance, then requires a match to clear that floor. One rule that
+behaves correctly whether the floor is 2.5 or 45, with no constant to re-tune.
+
+**A runner-up test, which is what actually catches a wrong book.** A different
+book in the same language scores *high* — it shares a vocabulary. What it cannot
+do is make one chapter stand out. Measured, same audio:
+
+| book | best | runner-up | confidence | accept_at | verdict |
+|---|---|---|---|---|---|
+| the right one | 78 – 87 | ~30 | **2.7 – 2.9×** | 30.7 | accepted 4/4 |
+| an unrelated Russian novel | 55 – 60 | 53 – 58 | **1.0×** | 92.1 | rejected 4/4 |
+
+Note the second row clears subplz's threshold of 40 comfortably and is still
+rejected here, on both tests independently: its own noise floor is 57.6, so
+`accept_at` rises to 92, and nothing stands out from the crowd.
+
+**Adaptive sampling.** Chapters are sampled from across the book, skipping
+chapter 0 — publisher announcements and credits live there, so it is the least
+representative chapter in the book. Sampling stops as soon as one chapter matches
+confidently, so a good pair typically costs ~8s and a doubtful one ~20s.
+
+A poor verdict warns and relabels the button "Start anyway"; it never blocks,
+because the check only samples and it is your book. Disable it entirely with
+`SUBPLZ_WEB_MATCH_CHECK=false`.
+
+### Measured and rejected
+
+- **Typographic normalisation** of quotes, dashes, soft hyphens, NBSP and
+  footnote markers: **+0.0**. Built, measured, deleted.
+- **Un-gluing sentence boundaries** (`роса…Мне` → `роса… Мне`): multi-sentence
+  lines 13.6% → 12.4%, because pysbd does not treat `…` as a terminator for
+  Russian. Not worth the epub rewrite.
+- **`token_set_ratio` / `token_sort_ratio`**: *worse* than `fuzz.ratio` on long
+  texts — nearly every common word appears in both chapters.
 
 ---
 

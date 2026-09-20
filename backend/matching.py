@@ -25,14 +25,14 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
+from . import chapters as chapters_mod
 from .settings import settings
 
 log = logging.getLogger(__name__)
 
-# Scoring compares chapter openings, so a sample from the start of a chapter is
-# the relevant thing to transcribe - and a short one is enough. subplz caps the
-# comparison at 2000 characters, which is a couple of minutes of speech.
-SAMPLE_SECONDS = 60
+# Enough speech to fingerprint a chapter confidently. Sampling is adaptive, so
+# a book that matches well normally pays for one of these and stops.
+SAMPLE_SECONDS = 120
 MAX_SAMPLES = 3
 
 
@@ -41,11 +41,16 @@ class ChapterScore:
     audio_chapter: int
     best_score: float
     best_text_chapter: int | None
+    runner_up: float = 0.0
+    # How far clear of the runner-up. 1.0 means every chapter looked alike,
+    # which is the signature of the wrong book rather than a poor recording.
+    confidence: float = 0.0
+    accepted: bool = False
     transcript_head: str = ""
 
     @property
     def matched(self) -> bool:
-        return self.best_text_chapter is not None
+        return self.accepted
 
 
 @dataclass
@@ -54,6 +59,8 @@ class MatchReport:
     scores: list[ChapterScore] = field(default_factory=list)
     text_chapters: int = 0
     audio_chapters: int = 0
+    accept_at: float = 0.0
+    noise_floor: float = 0.0
     verdict: str = "unknown"  # good | marginal | poor | unknown
     summary: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -71,9 +78,15 @@ class MatchReport:
     def matched(self) -> int:
         return sum(1 for s in self.scores if s.matched)
 
+    @property
+    def confidence(self) -> float:
+        return max((s.confidence for s in self.scores), default=0.0)
+
     def as_dict(self) -> dict:
         return {
-            "threshold": self.threshold,
+            "threshold": round(self.accept_at, 1),
+            "noise_floor": round(self.noise_floor, 1),
+            "confidence": round(self.confidence, 2),
             "verdict": self.verdict,
             "summary": self.summary,
             "best": round(self.best, 1),
@@ -88,6 +101,8 @@ class MatchReport:
                 {
                     "audio_chapter": s.audio_chapter,
                     "score": round(s.best_score, 1),
+                    "runner_up": round(s.runner_up, 1),
+                    "confidence": round(s.confidence, 2),
                     "text_chapter": s.best_text_chapter,
                 }
                 for s in self.scores
@@ -186,7 +201,7 @@ def _model():
 
 def transcribe_sample(samples, language: str) -> str:
     segments, _ = _model().transcribe(
-        samples, language=language, beam_size=1, without_timestamps=True
+        samples, language=language, beam_size=5, without_timestamps=True
     )
     return "".join(seg.text for seg in segments)
 
@@ -222,13 +237,18 @@ def check(audio: Path, text: Path, language: str, aligner) -> MatchReport:
                 f"more reliably."
             )
 
-        # Sample from the start of chapters spread across the book, because the
-        # score is about how chapters open.
+        # Learn what this book scores by chance before judging any match
+        # against it. See backend/chapters.py for why a fixed threshold cannot
+        # work across scripts.
+        fingerprints = [chapters_mod.fingerprint(c) for c in chapters]
+        calibration = chapters_mod.calibrate(chapters)
+        report.accept_at = calibration.accept_at
+        report.noise_floor = calibration.floor
+
+        # Sample chapters spread through the book, skipping the first: it is
+        # where publisher announcements and credits live, so it is the least
+        # representative chapter there is.
         picks = _spread(len(starts), MAX_SAMPLES)
-        scorer = (
-            aligner.for_language(language)
-            if hasattr(aligner, "for_language") else aligner
-        )
 
         for idx in picks:
             samples = read_samples(audio, starts[idx], SAMPLE_SECONDS)
@@ -238,20 +258,23 @@ def check(audio: Path, text: Path, language: str, aligner) -> MatchReport:
             if len(transcript.strip()) < 40:
                 continue
 
-            best, best_i = 0.0, None
-            for ci, chapter in enumerate(chapters):
-                score = scorer.score_pair(transcript, chapter)
-                if score > best:
-                    best, best_i = score, ci
-
+            match = chapters_mod.best_match(
+                chapters_mod.fingerprint(transcript), fingerprints, calibration
+            )
             report.scores.append(
                 ChapterScore(
                     audio_chapter=idx,
-                    best_score=best,
-                    best_text_chapter=best_i if best > report.threshold else None,
+                    best_score=match.score,
+                    best_text_chapter=match.text_index,
+                    runner_up=match.runner_up,
+                    confidence=match.confidence,
+                    accepted=match.accepted,
                     transcript_head=transcript.strip()[:160],
                 )
             )
+            # A confident match is enough; only keep sampling when unsure.
+            if match.accepted and match.confidence >= 2.0:
+                break
 
         _verdict(report)
         return report
@@ -263,52 +286,72 @@ def check(audio: Path, text: Path, language: str, aligner) -> MatchReport:
 
 
 def _spread(n: int, k: int) -> list[int]:
-    """Up to k indices spread across range(n), always including the first."""
-    if n <= k:
-        return list(range(n))
-    step = n / k
-    return sorted({min(n - 1, int(i * step)) for i in range(k)})
+    """Up to k chapter indices spread across the book.
+
+    Skips chapter 0 when there is anything else to choose. It is where
+    publisher announcements, credits and "read by" cards live - material that
+    is in the audio and not in the book - so it is the least representative
+    chapter there is, and the worst one to judge a whole book on.
+    """
+    if n <= 1:
+        return [0]
+    first = 1 if n > 3 else 0
+    usable = n - first
+    if usable <= k:
+        return list(range(first, n))
+    step = usable / k
+    return sorted({min(n - 1, first + int(i * step)) for i in range(k)})
 
 
 def _verdict(report: MatchReport) -> None:
-    """Turn the raw score into advice.
+    """Turn the measurements into advice.
 
-    The bands sit well above the backend's own threshold, deliberately.
-    Measured on real files: the right book scored 74, while a completely
-    unrelated Russian novel still scored 40.5 - barely clearing subplz's
-    threshold of 40. Two prose texts in the same language are roughly 40%
-    similar character-by-character whatever they say, so "just over the
-    threshold" means "probably wrong", not "probably fine".
+    Two separate questions, and the second is the one a fixed threshold cannot
+    answer:
+
+    * Is the best chapter similar enough to be a real match at all?
+    * Is it *distinctly* the best, or did every chapter score alike?
+
+    A different book in the same language scores high on the first and fails
+    the second - its chapters all look equally plausible because they share a
+    language, not a story.
     """
     if not report.scores:
         report.verdict = "unknown"
         report.summary = "Could not sample enough audio to check the match."
         return
 
-    t = report.threshold or 40.0
-    good_at, weak_at = t * 1.5, t * 1.2  # 60 and 48 for subplz
     best = report.best
-    total = len(report.scores)
-    strong = sum(1 for s in report.scores if s.best_score >= good_at)
+    confidence = report.confidence
+    accepted = report.matched
 
-    if best >= good_at:
+    if accepted and confidence >= 2.0:
         report.verdict = "good"
-        report.summary = f"Text and audio line up ({best:.0f}/100 on the best sample)."
-        if total > 1 and strong < total:
-            report.warnings.append(
-                f"Only {strong} of {total} sampled chapters scored well. The "
-                f"timing may drift in parts of the book."
-            )
-    elif best >= weak_at:
+        report.summary = (
+            f"Text and audio line up - the matching chapter scores {best:.0f}, "
+            f"{confidence:.1f}x clear of the next best."
+        )
+    elif accepted:
         report.verdict = "marginal"
         report.summary = (
-            f"Weak match ({best:.0f}/100). This may be a different edition or "
-            f"an abridgement. Alignment can still work, but expect drift."
+            f"Probable match ({best:.0f}), but only {confidence:.1f}x clear of "
+            f"the next best chapter. Expect some drift."
+        )
+    elif best >= report.accept_at:
+        # Similar enough, but nothing stood out.
+        report.verdict = "poor"
+        report.summary = (
+            f"Every chapter of this book scores about the same ({best:.0f} vs "
+            f"{report.scores[0].runner_up:.0f}), so nothing actually matches."
+        )
+        report.warnings.append(
+            "That pattern means a different book in the same language - the "
+            "words are familiar but the story is not. Check you uploaded the "
+            "right book and the right edition."
         )
     else:
         report.verdict = "poor"
         report.summary = (
-            f"This text does not look like this audio ({best:.0f}/100). Two "
-            f"unrelated books in the same language score about this well, so "
-            f"it is probably the wrong book, edition or abridgement."
+            f"This text does not look like this audio ({best:.0f}, and this "
+            f"book needs {report.accept_at:.0f} to count as a match)."
         )
