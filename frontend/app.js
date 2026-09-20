@@ -1,4 +1,4 @@
-/* SubPlz web UI. No framework, no build step - one file, served as-is. */
+/* SubRead web UI. No framework, no build step - one file, served as-is. */
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,12 +13,23 @@ const el = {
   freetier: $('freetier'), staged: $('staged'), dzTitle: $('dz-title'),
   match: $('match'), matchBadge: $('match-badge'),
   matchSummary: $('match-summary'), matchWarnings: $('match-warnings'),
+  who: $('who'), buyBtn: $('buy-btn'), portalBtn: $('portal-btn'),
+  signinBtn: $('signin-btn'), signoutBtn: $('signout-btn'),
+  tiers: $('tiers'), freeNote: $('free-note'), ytNote: $('yt-note'),
+  ytCost: $('yt-cost'), paidTag: $('paid-tag'),
+  signinDialog: $('signin-dialog'), signinForm: $('signin-form'),
+  signinEmail: $('signin-email'), signinSend: $('signin-send'),
+  signinNote: $('signin-note'),
+  pricingDialog: $('pricing-dialog'), pricingWhy: $('pricing-why'),
+  plans: $('plans'), toast: $('toast'),
 };
 
 let languages = [];
 let languagesReady = null;  // resolves once the <select> is populated
 let draft = null;           // the job awaiting confirmation
 let pollTimer = null;
+let account = null;         // last /api/account response
+let unlockJobId = null;     // the job a purchase is being made for
 
 /* ---------------- helpers ---------------- */
 
@@ -52,7 +63,9 @@ async function api(path, opts = {}) {
       if (body.detail) detail = typeof body.detail === 'string'
         ? body.detail : JSON.stringify(body.detail);
     } catch { /* non-JSON error body */ }
-    throw new Error(detail);
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }
@@ -85,30 +98,88 @@ function setLanguage(code) {
   updateSplitNote();
 }
 
-async function refreshQuota() {
-  try {
-    const a = await api('/api/account');
-    signedIn = !!a.signed_in;
-    const hint = document.getElementById('cover-hint');
-    if (hint) {
-      hint.innerHTML = signedIn
-        ? 'Optional: drop a jpg or png to use as the video background'
-        : 'Optional: drop a jpg or png to use as the video background — ' +
-          '<strong>sign in required</strong>';
-    }
-    if (a.free_tier_summary && el.freetier) {
-      el.freetier.textContent = a.free_tier_summary.replace(/^./, (c) => c.toUpperCase()) + '.';
-    }
-    if (!a.billing_enabled) {
-      el.quota.hidden = true;
-      return;
-    }
-    el.quota.hidden = false;
-    el.quota.classList.toggle('blocked', !a.allowed);
-    el.quota.textContent = a.allowed
-      ? `${a.remaining} conversion${a.remaining === 1 ? '' : 's'} left`
-      : 'Free conversion used — add credit to continue';
-  } catch { /* quota is cosmetic; never block the UI on it */ }
+async function refreshAccount() {
+  try { account = await api('/api/account'); }
+  catch { return; /* cosmetic; never block the UI on it */ }
+  renderAccount();
+}
+
+function renderAccount() {
+  const a = account;
+  if (!a) return;
+  signedIn = !!a.signed_in;
+
+  const hint = document.getElementById('cover-hint');
+  if (hint) {
+    hint.innerHTML = signedIn
+      ? 'Optional: drop a jpg or png to use as the video background'
+      : 'Optional: drop a jpg or png to use as the video background — ' +
+        '<strong>sign in required</strong>';
+  }
+  if (a.free_tier_summary && el.freetier) {
+    el.freetier.textContent =
+      a.free_tier_summary.replace(/^./, (c) => c.toUpperCase()) + '.';
+  }
+
+  el.who.hidden = !signedIn;
+  el.who.textContent = signedIn ? a.email : '';
+  el.signoutBtn.hidden = !signedIn;
+  el.signinBtn.hidden = signedIn || !a.email_sign_in_available;
+
+  // With billing off (localhost) nothing is for sale and nothing is locked.
+  const selling = a.billing_enabled;
+  el.buyBtn.hidden = !selling || a.subscribed;
+  el.portalBtn.hidden = !(selling && a.subscribed);
+  el.tiers.hidden = !selling;
+  if (el.paidTag) el.paidTag.hidden = !selling;
+
+  el.quota.hidden = !selling;
+  if (selling) {
+    el.quota.classList.toggle('blocked', !a.free_allowed && !a.youtube_allowed);
+    el.quota.textContent = a.subscribed ? 'Unlimited plan'
+      : a.credits > 0 ? `${a.credits} credit${a.credits === 1 ? '' : 's'}`
+      : a.free_allowed ? 'Free book available'
+      : 'Free book used';
+  }
+  renderTiers();
+}
+
+/* Say what each choice will cost *this* account before they commit to it. */
+function renderTiers() {
+  const a = account;
+  if (!a || !a.billing_enabled) return;
+
+  el.freeNote.textContent = a.subscribed || a.free_allowed ? ''
+    : `Used for now — next free book ${whenText(a.next_free_at)}.`;
+  el.ytCost.textContent = a.subscribed ? 'included' : '1 credit';
+  el.ytNote.textContent = a.subscribed ? 'Included in your unlimited plan.'
+    : a.credits > 0 ? `You have ${a.credits} credit${a.credits === 1 ? '' : 's'}.`
+    : 'You have no credits yet — you can buy one on the next step.';
+
+  // Nothing free left: preselect the option that can actually start.
+  if (!a.free_allowed && !a.subscribed) {
+    const yt = document.querySelector('input[name=tier][value=youtube]');
+    if (yt) yt.checked = true;
+  }
+}
+
+function whenText(iso) {
+  if (!iso) return 'later';
+  const d = new Date(iso);
+  return 'at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+    (d.toDateString() === new Date().toDateString() ? '' : ' tomorrow');
+}
+
+const chosenTier = () =>
+  (account && account.billing_enabled &&
+   document.querySelector('input[name=tier]:checked')?.value) || 'free';
+
+let toastTimer = null;
+function toast(msg, ms = 6000) {
+  el.toast.textContent = msg;
+  el.toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.toast.hidden = true; }, ms);
 }
 
 /* ---------------- upload ---------------- */
@@ -377,13 +448,15 @@ el.start.addEventListener('click', async () => {
     await api(`/api/jobs/${draft.id}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: el.language.value }),
+      body: JSON.stringify({ language: el.language.value, tier: chosenTier() }),
     });
     resetToDrop();
     refreshJobs();
-    refreshQuota();
+    refreshAccount();
   } catch (e) {
-    showError(e.message);
+    // 402 is not an error to apologise for; it is the price list's cue.
+    if (e.status === 402) openPricing(e.message);
+    else showError(e.message);
     el.start.disabled = false;
   }
 });
@@ -451,6 +524,12 @@ function jobCard(j) {
       .map((a) => {
         const size = a.size_bytes ? ` <span class="dl-size">${fmtBytes(a.size_bytes)}</span>` : '';
         const t = hint[a.kind] ? ` title="${escapeHtml(hint[a.kind])}"` : '';
+        if (a.locked) {
+          // Already rendered, just not paid for: unlocking is instant.
+          return `<button type="button" class="dl locked" data-unlock="${j.id}"
+                    title="Part of the YouTube tier — one credit, or the unlimited plan"
+                    >🔒 Unlock the YouTube video (.mp4)${size}</button>`;
+        }
         return `<a class="dl ${primary.has(a.kind) ? '' : 'secondary'}"${t}
                    href="${a.url}" download>${label[a.kind] || a.kind}${size}</a>`;
       })
@@ -458,6 +537,10 @@ function jobCard(j) {
   }
 
   li.innerHTML = html;
+
+  li.querySelectorAll('[data-unlock]').forEach((btn) => {
+    btn.addEventListener('click', () => unlockJob(btn.dataset.unlock, btn));
+  });
 
   if (active) {
     const cancel = document.createElement('button');
@@ -468,7 +551,7 @@ function jobCard(j) {
       cancel.disabled = true;
       try { await api(`/api/jobs/${j.id}/cancel`, { method: 'POST' }); }
       catch (e) { showError(e.message); }
-      refreshJobs(); refreshQuota();
+      refreshJobs(); refreshAccount();
     };
     li.appendChild(cancel);
   }
@@ -580,12 +663,157 @@ el.picker.addEventListener('change', () => {
   el.picker.value = '';  // let the same file be chosen again after a removal
 });
 
+/* ---------------- unlock & checkout ---------------- */
+
+async function unlockJob(jobId, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    await api(`/api/jobs/${jobId}/unlock`, { method: 'POST' });
+    toast('Unlocked — the YouTube video is ready to download.');
+    refreshJobs();
+    refreshAccount();
+  } catch (e) {
+    if (e.status === 402) {
+      unlockJobId = jobId;
+      openPricing(e.message);
+    } else {
+      showError(e.message);
+    }
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function openPricing(why) {
+  el.pricingWhy.textContent = why ||
+    'The clean .mp4 for YouTube is the paid part. Everything else stays free.';
+  el.plans.innerHTML = '<p class="muted">Loading…</p>';
+  if (!el.pricingDialog.open) el.pricingDialog.showModal();
+
+  let catalogue;
+  try { catalogue = await api('/api/pricing'); }
+  catch (e) { el.plans.innerHTML = ''; showError(e.message); return; }
+
+  el.plans.innerHTML = '';
+  for (const p of catalogue.plans) {
+    const card = document.createElement('div');
+    card.className = 'plan' + (p.id === 'pack5' ? ' featured' : '');
+    const per = p.per_book_cents && p.credits > 1
+      ? `<span class="plan-per">$${(p.per_book_cents / 100).toFixed(2)} a book</span>` : '';
+    card.innerHTML = `
+      <div class="plan-name">${escapeHtml(p.name)}</div>
+      <div class="plan-price">${escapeHtml(p.price_display)}${p.recurring ? '<small>/month</small>' : ''}</div>
+      ${per}
+      <p class="plan-blurb">${escapeHtml(p.blurb)}</p>`;
+    const buy = document.createElement('button');
+    buy.className = 'primary';
+    buy.textContent = catalogue.payments_available
+      ? (p.recurring ? 'Subscribe' : 'Buy') : 'Opening soon';
+    buy.disabled = !catalogue.payments_available;
+    buy.onclick = () => checkout(p.id, buy);
+    card.appendChild(buy);
+    el.plans.appendChild(card);
+  }
+}
+
+async function checkout(planId, btn) {
+  btn.disabled = true;
+  try {
+    const { url } = await api('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: planId, job_id: unlockJobId }),
+    });
+    window.location.href = url;  // Stripe's page; we come back via /api/billing/return
+  } catch (e) {
+    el.pricingDialog.close();
+    showError(e.message);
+    btn.disabled = false;
+  }
+}
+
+el.pricingDialog.addEventListener('close', () => { unlockJobId = null; });
+el.buyBtn.addEventListener('click', () => openPricing(
+  'One credit is one book with every output, YouTube video included.'));
+
+el.portalBtn.addEventListener('click', async () => {
+  try {
+    const { url } = await api('/api/billing/portal', { method: 'POST' });
+    window.location.href = url;
+  } catch (e) { showError(e.message); }
+});
+
+/* ---------------- sign in ---------------- */
+
+el.signinBtn.addEventListener('click', () => {
+  el.signinNote.hidden = true;
+  el.signinDialog.showModal();
+  el.signinEmail.focus();
+});
+
+el.signinForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  el.signinSend.disabled = true;
+  try {
+    const r = await api('/api/auth/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: el.signinEmail.value }),
+    });
+    el.signinNote.hidden = false;
+    if (r.dev_link) {
+      // Localhost has no mail server, so the server hands the link back.
+      el.signinNote.innerHTML =
+        `No mail server here — <a href="${escapeHtml(r.dev_link)}">open your sign-in link</a>.`;
+    } else {
+      el.signinNote.textContent =
+        `Link sent to ${r.email}. It works once and expires in 30 minutes.`;
+    }
+  } catch (err) {
+    el.signinNote.hidden = false;
+    el.signinNote.textContent = err.message;
+  }
+  el.signinSend.disabled = false;
+});
+
+el.signoutBtn.addEventListener('click', async () => {
+  try { await api('/api/auth/signout', { method: 'POST' }); } catch {}
+  window.location.replace('/');
+});
+
+/* The sign-in link and Stripe's return trip both land here with a query
+   string. Act on it once, then clean the URL so a reload does not repeat it. */
+async function handleArrival() {
+  const q = new URLSearchParams(window.location.search);
+  const token = q.get('login');
+  const paid = q.get('checkout');
+  if (!token && !paid) return;
+  window.history.replaceState({}, '', '/');
+
+  if (token) {
+    try {
+      account = await api('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      toast(`Signed in as ${account.email}.`);
+    } catch (e) { showError(e.message); }
+  }
+  if (paid === 'paid') toast('Payment received — thank you. Your credits are ready.');
+  if (paid === 'pending') {
+    toast('Payment is still being confirmed. Credits appear here as soon as it clears.', 9000);
+  }
+}
+
 /* ---------------- boot ---------------- */
 
 (async function init() {
   languagesReady = loadLanguages();
   try { await languagesReady; }
   catch (e) { showError(`Could not reach the server: ${e.message}`); }
-  refreshQuota();
+  await handleArrival();
+  // In sequence, not together: on a first visit each request without a cookie
+  // would mint its own anonymous account, and the browser keeps only one.
+  await refreshAccount();
   refreshJobs();
 })();

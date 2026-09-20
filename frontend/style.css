@@ -277,6 +277,90 @@ button.ghost:hover { color: var(--ink); border-color: var(--muted); }
 .dl.secondary { background: transparent; color: var(--muted); border-color: var(--line); }
 .dl.secondary:hover { color: var(--ink); border-color: var(--muted); }
 
+/* ---------- account bar ---------- */
+.account { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.who { color: var(--muted); font-size: 13px; max-width: 220px;
+       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.compact { padding: 6px 12px; font-size: 13px; }
+
+/* ---------- tiers ---------- */
+.tag {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+  vertical-align: 1px; white-space: nowrap;
+}
+.tag.free { background: var(--ok-soft); color: var(--ok); }
+.tag.paid { background: var(--accent-soft); color: var(--accent); }
+
+.tiers { border: 0; padding: 0; margin: 20px 0 0; display: grid; gap: 10px; }
+.tiers legend { padding: 0; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+.tier {
+  display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px;
+}
+.tier:hover { border-color: var(--muted); }
+.tier:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.tier input { margin-top: 4px; accent-color: var(--accent); }
+.tier-body { display: grid; gap: 3px; min-width: 0; }
+.tier-name { font-weight: 600; }
+.tier-desc { color: var(--muted); font-size: 13.5px; }
+.tier-note { font-size: 12.5px; color: var(--muted); }
+.tier-note.warn { color: var(--warn); }
+.tier-note:empty { display: none; }
+
+/* A download that exists but has not been paid for. */
+button.dl.locked {
+  background: transparent; color: var(--accent); border: 1px dashed var(--accent);
+}
+button.dl.locked:hover { background: var(--accent-soft); filter: none; }
+button.dl.locked:disabled { opacity: .55; cursor: progress; }
+
+/* ---------- dialogs ---------- */
+dialog.modal {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); box-shadow: var(--shadow);
+  padding: 26px 26px 22px; width: min(420px, calc(100vw - 32px));
+}
+dialog.modal.wide { width: min(760px, calc(100vw - 32px)); }
+dialog.modal::backdrop { background: rgba(10, 10, 20, .55); }
+dialog.modal h2 { margin: 0 0 8px; font-size: 19px; }
+.modal-x {
+  position: absolute; top: 10px; right: 12px; border: 0; background: none;
+  color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer;
+}
+.modal-x:hover { color: var(--ink); }
+
+.signin-form { display: flex; gap: 8px; margin: 16px 0 10px; flex-wrap: wrap; }
+.signin-form input {
+  flex: 1; min-width: 200px; font: inherit; padding: 9px 12px;
+  border-radius: 9px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink);
+}
+.signin-form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.plans {
+  display: grid; gap: 12px; margin: 18px 0 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.plan {
+  border: 1px solid var(--line); border-radius: 12px; padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.plan.featured { border-color: var(--accent); }
+.plan-name { font-weight: 600; }
+.plan-price { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+.plan-price small { font-size: 13px; font-weight: 400; color: var(--muted); }
+.plan-per { font-size: 12.5px; color: var(--ok); }
+.plan-blurb { color: var(--muted); font-size: 13px; margin: 4px 0 12px; flex: 1; }
+.plan button { width: 100%; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); padding: 11px 18px;
+  border-radius: 10px; box-shadow: var(--shadow); font-size: 14px;
+  max-width: calc(100vw - 32px); z-index: 10;
+}
+
 footer { padding-top: 34px; padding-bottom: 40px; }
 footer a { color: var(--accent); }
 .muted { color: var(--muted); }

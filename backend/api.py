@@ -6,23 +6,29 @@ POST /api/jobs/{id}/start (entitlement check, enqueue) -> poll GET /api/jobs/{id
 
 Upload and start are separate so a wrong language guess costs a click rather
 than a re-upload and a wasted multi-hour run.
+
+Around that: /api/auth/* (email sign-in links) and /api/billing/* (Stripe
+checkout, its return trip and its webhook).
 """
 
 from __future__ import annotations
 
-import secrets
 import shutil
 from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import (
-    APIRouter, Cookie, Depends, File, HTTPException, Response, UploadFile,
+    APIRouter, Cookie, Depends, File, HTTPException, Request, Response,
+    UploadFile,
 )
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from . import billing, convert, detect, languages, matching, pricing
+from . import (
+    accounts, auth, billing, convert, detect, languages, mailer, matching,
+    payments, pricing,
+)
 from .aligner import aligner
 from .db import Account, Artifact, Job, JobStatus, SessionLocal, new_id, utcnow
 from .queue import queue
@@ -55,30 +61,43 @@ def get_account(
 ) -> Account:
     """Identify the caller.
 
-    A cookie is the whole identity check, on purpose. Anyone who clears it gets
-    another free book, and that is an accepted cost: hard verification would
-    mean accounts, email and a signup wall in front of a tool whose pitch is
-    "drop two files in". The real protection against abuse is capacity - the
-    queue and per-worker limits - not identity.
+    A cookie is the whole identity check for the free tier, on purpose. Anyone
+    who clears it gets another free book, and that is an accepted cost: a
+    signup wall does not belong in front of a tool whose pitch is "drop two
+    files in". The real protection against abuse is capacity - the queue and
+    per-worker limits - not identity.
 
-    Swapping this for real auth later means changing this one function:
-    everything downstream just receives an Account.
+    Signing in does not replace the cookie, it re-points it: the cookie then
+    names the signed-in account, on every device that has signed in.
     """
-    token = subplz_device
     account = None
-    if token:
-        account = session.query(Account).filter(Account.device_token == token).first()
+    if subplz_device:
+        account = (
+            session.query(Account)
+            .filter(Account.device_token == subplz_device)
+            .first()
+        )
 
     if account is None:
-        token = secrets.token_urlsafe(24)
-        account = Account(device_token=token)
-        session.add(account)
+        account = accounts.new_account(session)
         session.commit()
-        response.set_cookie(
-            DEVICE_COOKIE, token,
-            max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax",
-        )
-    return account
+        _set_identity(response, account)
+        return account
+
+    # This device's anonymous row was folded into a real account while no
+    # browser was attached (a payment landing by webhook). Follow it.
+    survivor = accounts.resolve(session, account)
+    if survivor.id != account.id:
+        _set_identity(response, survivor)
+    return survivor
+
+
+def _set_identity(response: Response, account: Account) -> None:
+    response.set_cookie(
+        DEVICE_COOKIE, account.device_token,
+        max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax",
+        secure=settings.cookie_secure,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -105,6 +124,8 @@ class ArtifactOut(BaseModel):
     filename: str
     size_bytes: int
     url: str
+    # True when this file belongs to a tier the job has not paid for.
+    locked: bool = False
 
 
 class JobOut(BaseModel):
@@ -124,6 +145,7 @@ class JobOut(BaseModel):
     audio_duration_seconds: float | None
     error: str | None
     created_at: str
+    tier: str = billing.FREE
     artifacts: list[ArtifactOut] = Field(default_factory=list)
 
 
@@ -140,6 +162,7 @@ class UploadOut(BaseModel):
 class StartIn(BaseModel):
     language: str | None = None
     model: str | None = None
+    tier: Literal["free", "youtube"] = "free"
 
 
 class AccountOut(BaseModel):
@@ -147,16 +170,37 @@ class AccountOut(BaseModel):
     signed_in: bool
     email: str | None
     billing_enabled: bool
+    # Whether the server can actually take money / send sign-in email yet.
+    payments_available: bool
+    email_sign_in_available: bool
+    # Free tier.
     free_allowance: int
     free_window_hours: int
     free_tier_summary: str
-    purchased_credits: int
-    used: int
-    remaining: int
-    allowed: bool
+    free_remaining: int
+    free_allowed: bool
     next_free_at: str | None
     reason: str
+    # Paid tier.
+    credits: int
+    subscribed: bool
+    subscription_ends: str | None
+    youtube_allowed: bool
     queue_depth: int
+
+
+class EmailIn(BaseModel):
+    email: str
+
+
+class TokenIn(BaseModel):
+    token: str
+
+
+class CheckoutIn(BaseModel):
+    plan_id: str
+    # A finished free job to unlock with this purchase.
+    job_id: str | None = None
 
 
 def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
@@ -178,10 +222,12 @@ def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
         audio_duration_seconds=job.audio_duration_seconds,
         error=job.error,
         created_at=job.created_at.isoformat(),
+        tier=job.tier or billing.FREE,
         artifacts=[
             ArtifactOut(
                 kind=a.kind, filename=a.filename, size_bytes=a.size_bytes,
                 url=f"/api/jobs/{job.id}/files/{a.kind}",
+                locked=not billing.can_download(job, a.kind),
             )
             for a in arts
         ],
@@ -224,21 +270,33 @@ def get_account_info(
     account: Annotated[Account, Depends(get_account)],
     session: Annotated[Session, Depends(get_session)],
 ):
+    return _account_out(session, account)
+
+
+def _account_out(session: Session, account: Account) -> AccountOut:
     ent = billing.check(session, account)
     return AccountOut(
         id=account.id,
         signed_in=account.signed_in,
         email=account.email,
         billing_enabled=settings.billing_enabled,
+        payments_available=settings.payments_configured,
+        email_sign_in_available=(
+            settings.email_configured or not settings.billing_enabled
+        ),
         free_allowance=ent.free_allowance,
         free_window_hours=ent.window_hours,
         free_tier_summary=pricing.free_tier_summary(),
-        purchased_credits=ent.purchased_credits,
-        used=ent.used,
-        remaining=ent.remaining,
-        allowed=ent.allowed,
+        free_remaining=ent.free_remaining,
+        free_allowed=ent.free_allowed,
         next_free_at=ent.next_free_at.isoformat() if ent.next_free_at else None,
         reason=ent.reason,
+        credits=ent.credits,
+        subscribed=ent.subscribed,
+        subscription_ends=(
+            ent.subscription_ends.isoformat() if ent.subscription_ends else None
+        ),
+        youtube_allowed=ent.youtube_allowed or not settings.billing_enabled,
         queue_depth=queue.depth(),
     )
 
@@ -249,8 +307,149 @@ def get_pricing():
     return {
         "free_tier": pricing.free_tier_summary(),
         "billing_enabled": settings.billing_enabled,
+        "payments_available": settings.payments_configured,
+        "tiers": pricing.TIER_OUTPUTS,
         "plans": pricing.as_dicts(),
     }
+
+
+# --------------------------------------------------------------------------
+# sign-in
+# --------------------------------------------------------------------------
+
+@router.post("/auth/request")
+def request_sign_in(
+    body: EmailIn,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    """Mail a one-time sign-in link."""
+    try:
+        email = accounts.normalize_email(body.email)
+    except accounts.InvalidEmail as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    # A public server that cannot send mail has no safe way to do this: the
+    # only fallback is showing the link, which would sign anyone in as anyone.
+    if settings.billing_enabled and not settings.email_configured:
+        raise HTTPException(
+            503, "Email sign-in is not set up on this server yet."
+        )
+
+    try:
+        link = auth.issue(session, account, email)
+    except auth.TooManyRequests as exc:
+        raise HTTPException(429, str(exc)) from exc
+
+    try:
+        sent = mailer.send_login_link(email, link)
+    except mailer.MailError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+    out = {"sent": sent, "email": email}
+    if not sent:
+        # Localhost only (guarded above): there is no mailbox to check, so
+        # hand the link straight back.
+        out["dev_link"] = link
+    return out
+
+
+@router.post("/auth/verify", response_model=AccountOut)
+def verify_sign_in(
+    body: TokenIn,
+    response: Response,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    owner = auth.redeem(session, body.token, account)
+    if owner is None:
+        raise HTTPException(
+            400, "That sign-in link has expired or was already used. "
+                 "Request a new one."
+        )
+    _set_identity(response, owner)
+    return _account_out(session, owner)
+
+
+@router.post("/auth/signout")
+def sign_out(response: Response):
+    """Forget this browser. The account and everything in it stay put."""
+    response.delete_cookie(DEVICE_COOKIE)
+    return {"signed_out": True}
+
+
+# --------------------------------------------------------------------------
+# billing
+# --------------------------------------------------------------------------
+
+@router.post("/billing/checkout")
+def create_checkout(
+    body: CheckoutIn,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    plan = pricing.get(body.plan_id)
+    if plan is None:
+        raise HTTPException(404, "No such plan.")
+    if body.job_id:
+        _load(session, account, body.job_id)  # 404s on someone else's job
+    try:
+        url = payments.start_checkout(session, account, plan, body.job_id)
+    except payments.PaymentsUnavailable as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except payments.PaymentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"url": url}
+
+
+@router.get("/billing/return")
+def checkout_return(
+    session_id: str,
+    session: Annotated[Session, Depends(get_session)],
+):
+    """Where Stripe sends the browser after paying.
+
+    Fulfils from here as well as from the webhook, so credits are there by the
+    time the page loads rather than whenever the webhook gets round to it.
+    Identity needs no handling: if paying folded this device into an existing
+    account, get_account re-points the cookie on the very next request.
+    """
+    try:
+        paid = payments.fulfil_by_id(session, session_id) is not None
+    except payments.PaymentsUnavailable:
+        paid = False
+    state = "paid" if paid else "pending"
+    return RedirectResponse(f"/?checkout={state}", status_code=303)
+
+
+@router.post("/billing/webhook")
+async def stripe_webhook(
+    request: Request,
+    session: Annotated[Session, Depends(get_session)],
+):
+    payload = await request.body()
+    try:
+        event = payments.verify_webhook(
+            payload, request.headers.get("stripe-signature")
+        )
+    except payments.PaymentsUnavailable as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except payments.PaymentError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    payments.handle_event(session, event)
+    return {"received": True}
+
+
+@router.post("/billing/portal")
+def billing_portal(
+    account: Annotated[Account, Depends(get_account)],
+):
+    try:
+        return {"url": payments.portal_url(account)}
+    except payments.PaymentsUnavailable as exc:
+        raise HTTPException(503, str(exc)) from exc
+    except payments.PaymentError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.post("/uploads", response_model=UploadOut)
@@ -425,9 +624,11 @@ def start_job(
     if body.model:
         job.model = body.model
 
-    ent = billing.check(session, account)
-    if not ent.allowed:
-        raise HTTPException(402, ent.reason)
+    try:
+        billing.authorize_start(session, account, job, body.tier)
+    except billing.PaymentRequired as exc:
+        session.rollback()
+        raise HTTPException(402, str(exc)) from exc
 
     # With an external queue the worker is probably not this machine, so the
     # staged inputs have to go somewhere both sides can reach before enqueuing.
@@ -439,7 +640,6 @@ def start_job(
                 rel = local.relative_to(paths.inp).as_posix()
                 storage.put_file(f"{prefix}/{rel}", local)
 
-    billing.consume(session, job)
     job.status = JobStatus.queued
     job.stage = "Queued"
     job.progress = 0.0
@@ -493,6 +693,23 @@ def cancel_job(
     return _job_out(job, [])
 
 
+@router.post("/jobs/{job_id}/unlock", response_model=JobOut)
+def unlock_job(
+    job_id: str,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    """Upgrade a free job to the YouTube tier, spending a credit."""
+    job = _load(session, account, job_id)
+    try:
+        billing.unlock(session, account, job)
+    except billing.PaymentRequired as exc:
+        session.rollback()
+        raise HTTPException(402, str(exc)) from exc
+    session.commit()
+    return _job_out(job, _artifacts(session, job.id))
+
+
 @router.delete("/jobs/{job_id}")
 def delete_job(
     job_id: str,
@@ -517,6 +734,11 @@ def download(
     session: Annotated[Session, Depends(get_session)],
 ):
     job = _load(session, account, job_id)
+    if not billing.can_download(job, kind):
+        raise HTTPException(
+            402, "The YouTube video is part of the paid tier. Unlock it with "
+                 "a credit, or the unlimited plan."
+        )
     art = (
         session.query(Artifact)
         .filter(Artifact.job_id == job.id, Artifact.kind == kind)

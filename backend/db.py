@@ -14,6 +14,8 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    inspect,
+    text,
 )
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -52,9 +54,9 @@ class JobStatus(str, enum.Enum):
 class Account(Base):
     """One row per identified user.
 
-    On localhost everyone shares a single anonymous account. For the public
-    release this gains an auth provider id, an email and a Stripe customer id -
-    billing.py already reads its allowance from here.
+    Every visitor starts as an anonymous row keyed by a cookie. It becomes a
+    real account the moment an email is attached - by following a sign-in link
+    or by paying, since Stripe collects one at checkout.
     """
 
     __tablename__ = "accounts"
@@ -64,10 +66,28 @@ class Account(Base):
     )
     # Opaque token the browser stores; becomes a real session subject later.
     device_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # Conversions bought beyond the free allowance.
+    # Lowercased. Unique, so an email always resolves to exactly one account.
+    email: Mapped[str | None] = mapped_column(
+        String(320), nullable=True, unique=True, index=True
+    )
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    # Paid conversions in hand. One credit = one book with every output.
     purchased_credits: Mapped[int] = mapped_column(Integer, default=0)
+
+    # The unlimited plan. Status is Stripe's own word for it (active, past_due,
+    # canceled...); period_end is when the paid-for time runs out.
+    subscription_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    subscription_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    subscription_period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Set when this anonymous row was folded into a signed-in account. A
+    # payment can finish without a browser attached (the webhook), so the
+    # cookie is re-pointed lazily, the next time this device shows up.
+    merged_into: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -116,8 +136,17 @@ class Job(Base):
     stage: Mapped[str] = mapped_column(String(128), default="queued")
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # 1 once the job has consumed the free/paid allowance.
+    # 1 while the job holds a slot in the free window.
     billed: Mapped[int] = mapped_column(Integer, default=0)
+    # "free": subtitles + the video with subtitles built in.
+    # "youtube": also the clean mp4. Paid for with a credit or a subscription.
+    tier: Mapped[str] = mapped_column(
+        String(16), default="free", server_default=text("'free'")
+    )
+    # 1 if a credit was spent on this job, so a failed run can hand it back.
+    credit_spent: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
@@ -156,6 +185,52 @@ class Artifact(Base):
     job: Mapped[Job] = relationship(back_populates="artifacts")
 
 
+class LoginToken(Base):
+    """A one-time sign-in link. Only the hash is stored, so a leaked database
+    cannot be replayed into anyone's account."""
+
+    __tablename__ = "login_tokens"
+
+    id: Mapped[str] = mapped_column(
+        String(64), primary_key=True, default=lambda: new_id("login")
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    # The device that asked, so its anonymous jobs follow it into the account.
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class Purchase(Base):
+    """Ledger of completed checkouts.
+
+    The unique session id is what makes fulfilment idempotent: Stripe delivers
+    a payment twice (the webhook and the browser's return trip) and retries
+    webhooks freely, and each of those must credit the account exactly once.
+    """
+
+    __tablename__ = "purchases"
+
+    id: Mapped[str] = mapped_column(
+        String(64), primary_key=True, default=lambda: new_id("buy")
+    )
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id"), index=True)
+    plan_id: Mapped[str] = mapped_column(String(32))
+    credits: Mapped[int] = mapped_column(Integer, default=0)
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="usd")
+    stripe_session_id: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
 _is_sqlite = settings.resolved_database_url.startswith("sqlite")
 
 _engine = create_engine(
@@ -167,5 +242,38 @@ _engine = create_engine(
 SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
 
 
+def _add_missing_columns() -> None:
+    """Bring an existing database up to the current models, additively.
+
+    create_all() makes missing tables but never touches one that exists, so a
+    deploy that adds a column would otherwise need hand-run SQL on the server.
+    This only ever ADDs a column - anything destructive is still a deliberate,
+    manual migration.
+    """
+    insp = inspect(_engine)
+    with _engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have:
+                    continue
+                ddl = (
+                    f"ALTER TABLE {table.name} ADD COLUMN {col.name} "
+                    f"{col.type.compile(dialect=_engine.dialect)}"
+                )
+                if col.server_default is not None:
+                    ddl += f" DEFAULT {col.server_default.arg.text}"
+                conn.execute(text(ddl))
+
+            # A column added above cannot carry its index along with it.
+            existing = {i["name"] for i in insp.get_indexes(table.name)}
+            for index in table.indexes:
+                if index.name not in existing:
+                    index.create(conn)
+
+
 def init_db() -> None:
     Base.metadata.create_all(_engine)
+    _add_missing_columns()

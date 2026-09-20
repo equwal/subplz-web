@@ -64,6 +64,31 @@ class Settings(BaseSettings):
     # Off on localhost so nothing blocks you; flip on for the public release.
     billing_enabled: bool = False
 
+    # --- accounts & payments -----------------------------------------------
+    # What customers see on the Stripe page and in the sign-in email.
+    site_name: str = "SubRead"
+    # The origin users reach this on. Sign-in links and Stripe's return URLs
+    # are built from it, so it must be right in production.
+    public_base_url: str = "http://127.0.0.1:8420"
+    # Send the identity cookie over HTTPS only. On for any public deployment.
+    cookie_secure: bool = False
+
+    # Stripe. Leave empty and checkout reports itself unavailable rather than
+    # failing half way through a purchase.
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+
+    # Sign-in links go out over plain SMTP, so any provider works. With no
+    # host set the link is written to the server log instead - fine for
+    # localhost, and it keeps sign-in testable without an email account.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "SubRead <login@subread.space>"
+    smtp_starttls: bool = True
+    login_link_minutes: int = 30
+
     # --- match check -------------------------------------------------------
     # Transcribe a few short samples on upload and score them against the book,
     # so a mismatched pair fails in seconds instead of after a full run.
@@ -85,6 +110,14 @@ class Settings(BaseSettings):
 
     # --- uploads -----------------------------------------------------------
     max_upload_bytes: int = 2 * 1024 * 1024 * 1024  # 2 GiB
+
+    @property
+    def payments_configured(self) -> bool:
+        return bool(self.stripe_secret_key)
+
+    @property
+    def email_configured(self) -> bool:
+        return bool(self.smtp_host)
 
     @property
     def resolved_database_url(self) -> str:

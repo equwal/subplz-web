@@ -22,9 +22,16 @@ transcription - the model is tiny and its output is thrown away, since the
 subtitle text comes from the user's own book.
 
 So we price per book, cheap enough to be an impulse buy, and land the
-subscription just under the general subtitling tools:
+subscription just under the general subtitling tools.
 
-  free              1 book / 24h
+What is free and what is paid is split by output, not by quality. The free tier
+is the complete product for someone reading along at home: the .srt for
+HoshiReader and an .mkv with the subtitles built in. What costs money is the
+clean .mp4 made for publishing on YouTube - the one output whose whole point is
+an audience, and so the one whose users can be asked to pay. A credit buys one
+book with every output, and skips the free tier's 24-hour wait.
+
+  free              1 book / 24h, srt + mkv
   single book       $3.49
   5-book pack       $12.99   ($2.60/book)
   20-book pack      $39.99   ($2.00/book)
@@ -71,21 +78,21 @@ DEFAULT_PLANS: list[Plan] = [
         name="One book",
         credits=1,
         price_cents=349,
-        blurb="One more conversion, whenever you need it.",
+        blurb="One book with the YouTube video, no waiting.",
     ),
     Plan(
         id="pack5",
         name="5 books",
         credits=5,
         price_cents=1299,
-        blurb="$2.60 a book. Credits never expire.",
+        blurb="Credits never expire.",
     ),
     Plan(
         id="pack20",
         name="20 books",
         credits=20,
         price_cents=3999,
-        blurb="$2.00 a book. For working through a series.",
+        blurb="For working through a series.",
     ),
     Plan(
         id="unlimited",
@@ -93,7 +100,7 @@ DEFAULT_PLANS: list[Plan] = [
         credits=None,
         price_cents=1499,
         recurring=True,
-        blurb="As many books as you like. Cancel any time.",
+        blurb="Every book, YouTube video included. Cancel any time.",
     ),
 ]
 
@@ -128,3 +135,10 @@ def free_tier_summary() -> str:
     hours = settings.free_window_hours
     book = "book" if n == 1 else "books"
     return f"{n} free {book} every {hours} hours"
+
+
+# What each tier hands over, for the UI. Kinds match Artifact.kind.
+TIER_OUTPUTS = {
+    "free": ["srt", "video_embedded"],
+    "youtube": ["srt", "video_embedded", "video"],
+}

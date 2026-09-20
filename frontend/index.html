@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SubPlz — Audiobook to Subtitles</title>
-<link rel="stylesheet" href="/style.css?v=8">
+<title>SubRead — read along with your audiobook</title>
+<link rel="stylesheet" href="/style.css?v=9">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 </head>
 <body>
@@ -12,11 +12,18 @@
   <div class="brand">
     <span class="logo" aria-hidden="true">🎧</span>
     <div>
-      <h1>SubPlz</h1>
+      <h1>SubRead</h1>
       <p class="tagline">Line an audiobook up with its ebook, sentence by sentence.</p>
     </div>
   </div>
-  <div id="quota" class="quota" hidden></div>
+  <div class="account" id="account">
+    <span id="quota" class="quota" hidden></span>
+    <span id="who" class="who" hidden></span>
+    <button type="button" id="buy-btn" class="ghost compact" hidden>Buy credits</button>
+    <button type="button" id="portal-btn" class="ghost compact" hidden>Manage plan</button>
+    <button type="button" id="signin-btn" class="ghost compact" hidden>Sign in</button>
+    <button type="button" id="signout-btn" class="ghost compact" hidden>Sign out</button>
+  </div>
 </header>
 
 <main>
@@ -27,8 +34,12 @@
       from a machine's guess at what it heard.
     </p>
     <ul class="uses">
-      <li><strong>HoshiReader whispersync</strong> — a three-file package: audio, book, timings.</li>
-      <li><strong>Subtitled video</strong> — a YouTube-ready cut with the text on screen.</li>
+      <li><strong>HoshiReader read-along</strong> — the .srt timing file, to match
+        against your epub. <span class="tag free">free</span></li>
+      <li><strong>Local video</strong> — an .mkv with the subtitles built in, for
+        MPV or VLC. <span class="tag free">free</span></li>
+      <li><strong>YouTube video</strong> — a clean .mp4, plus the .srt to upload as
+        its captions. <span class="tag paid" id="paid-tag">paid</span></li>
     </ul>
     <p class="muted small" id="freetier">One free book every 24 hours.</p>
   </section>
@@ -119,6 +130,28 @@
       <ul id="match-warnings" class="match-warnings"></ul>
     </div>
 
+    <fieldset id="tiers" class="tiers" hidden>
+      <legend>What do you need?</legend>
+      <label class="tier">
+        <input type="radio" name="tier" value="free" checked>
+        <span class="tier-body">
+          <span class="tier-name">Read-along <span class="tag free">free</span></span>
+          <span class="tier-desc">Subtitles (.srt) for HoshiReader, and a video
+            with the subtitles built in (.mkv) for MPV or VLC.</span>
+          <span class="tier-note warn" id="free-note"></span>
+        </span>
+      </label>
+      <label class="tier">
+        <input type="radio" name="tier" value="youtube">
+        <span class="tier-body">
+          <span class="tier-name">YouTube <span class="tag paid" id="yt-cost">1 credit</span></span>
+          <span class="tier-desc">Everything above, plus a clean .mp4 made for
+            uploading to YouTube. Starts right away — no 24-hour wait.</span>
+          <span class="tier-note" id="yt-note"></span>
+        </span>
+      </label>
+    </fieldset>
+
     <div class="actions">
       <button id="start" class="primary">Start alignment</button>
       <button id="discard" class="ghost">Discard</button>
@@ -140,6 +173,32 @@
   </p>
 </footer>
 
-<script src="/app.js?v=8"></script>
+<dialog id="signin-dialog" class="modal">
+  <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
+  <h2>Sign in</h2>
+  <p class="muted">We email you a one-time link. There is no password.</p>
+  <form id="signin-form" class="signin-form">
+    <input type="email" id="signin-email" required autocomplete="email"
+           placeholder="you@example.com" aria-label="Email address">
+    <button class="primary" id="signin-send">Email me a link</button>
+  </form>
+  <p id="signin-note" class="muted small" hidden></p>
+</dialog>
+
+<dialog id="pricing-dialog" class="modal wide">
+  <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
+  <h2>Get the YouTube video</h2>
+  <p id="pricing-why" class="muted"></p>
+  <div id="plans" class="plans"></div>
+  <p class="muted small" id="pricing-foot">
+    Paid through Stripe; we never see your card. One credit is one book with
+    every output, and credits never expire. Paying also creates your account,
+    under the email you give Stripe.
+  </p>
+</dialog>
+
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script src="/app.js?v=9"></script>
 </body>
 </html>

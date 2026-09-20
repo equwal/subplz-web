@@ -229,7 +229,10 @@ drop corrupt frames instead of letting a single bad chapter abort the whole run.
 | `backend/languages.py` | language registry and splitter routing |
 | `backend/queue.py` | in-process or Redis dispatch |
 | `backend/storage.py` | local disk or S3 |
-| `backend/billing.py` | the 24-hour allowance |
+| `backend/billing.py` | who may do what: the free window, credits, the two tiers |
+| `backend/payments.py` | Stripe: checkout, idempotent fulfilment, webhooks |
+| `backend/accounts.py` | one email, one account; folding anonymous work in |
+| `backend/auth.py` | emailed one-time sign-in links |
 | `backend/pricing.py` | the plan catalogue, with the market it was set against |
 | `frontend/` | vanilla HTML/CSS/JS, no build step |
 | `tools/client.py` | CLI client, and a worked example of the API |
@@ -318,14 +321,55 @@ the subscription just under Otter ($16.99) and Happy Scribe ($17).
 
 Every number is an env var — see `backend/pricing.py`.
 
-**Identity is a cookie, and only a cookie.** Anyone who clears it gets another
-free book. That is accepted: hard verification means accounts, email and a
-signup wall in front of a tool whose pitch is "drop two files in". The real
-protection against abuse is capacity, not identity.
+**Free and paid are split by output, not by quality.**
 
-What is **not** included is a payment provider. `billing.start_checkout` raises
-`NotImplementedError` and is the single place Stripe plugs in. Credit
-`Account.purchased_credits` from the webhook, never from the success redirect.
+| Tier | You get | Costs |
+|---|---|---|
+| free | `.srt` (HoshiReader) + `.mkv` with the subtitles built in | one book per rolling 24 h |
+| youtube | all of that + the clean `.mp4` for uploading | one credit, or the unlimited plan |
+
+The free tier is the whole product for someone reading along at home. The one
+paid output is the one made for an audience. The mp4 is rendered for every job
+regardless - the mkv is a stream copy of it - so paying later unlocks a finished
+job instantly (`POST /api/jobs/{id}/unlock`) instead of re-running it. A credit
+spent on a job that then fails or is cancelled is handed back.
+
+**The free tier's identity is a cookie, and only a cookie.** Anyone who clears
+it gets another free book. That is accepted: a signup wall does not belong in
+front of a tool whose pitch is "drop two files in". The real protection against
+abuse is capacity, not identity.
+
+**An account is an email.** It gets attached either by following an emailed
+one-time link (no passwords anywhere) or by paying, since Stripe collects one.
+Whatever the device converted while anonymous is folded into the account, and
+the cookie is re-pointed at it - including when the payment lands by webhook
+with no browser attached (`Account.merged_into`).
+
+**Payments are Stripe Checkout**, with prices sent inline from
+`backend/pricing.py`, so there is nothing to configure in the Stripe dashboard
+beyond a webhook. Two rules: the browser returning from Stripe is never treated
+as proof of payment (the session is re-read from Stripe), and fulfilment is
+idempotent on the checkout session id, because Stripe reports one payment
+several times.
+
+### Turning payments on
+
+```bash
+# on the server, as root - each prompts for the value with input hidden
+tools/set-secret.sh SUBPLZ_WEB_STRIPE_SECRET_KEY       # sk_live_... (or sk_test_...)
+tools/set-secret.sh SUBPLZ_WEB_STRIPE_WEBHOOK_SECRET   # whsec_...
+tools/set-secret.sh SUBPLZ_WEB_SMTP_PASSWORD           # for sign-in emails
+```
+
+In Stripe: Developers -> Webhooks -> add `https://<host>/api/billing/webhook`
+with `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`customer.subscription.created`, `.updated` and `.deleted`. Then set
+`SUBPLZ_WEB_BILLING_ENABLED=true`, `SUBPLZ_WEB_PUBLIC_BASE_URL`,
+`SUBPLZ_WEB_COOKIE_SECURE=true` and the `SMTP_*` values in `.env` and restart.
+
+Not handled: refunds and disputes (do them in the Stripe dashboard and adjust
+`purchased_credits` by hand), and tax (Stripe Tax is one checkout parameter away
+once you are registered somewhere).
 
 ---
 
@@ -339,8 +383,8 @@ Everything environment-specific is an env var with a localhost default. See
 | Queue | thread pool in the API process | Redis + `worker.py` |
 | Storage | `./data/artifacts` | S3, presigned download URLs |
 | Database | SQLite | Postgres |
-| Identity | cookie | replace `api.get_account` |
-| Billing | off | `SUBPLZ_WEB_BILLING_ENABLED=true` |
+| Identity | cookie | cookie + emailed sign-in links (`SMTP_*`) |
+| Billing | off, nothing locked | `SUBPLZ_WEB_BILLING_ENABLED=true` + Stripe keys |
 
 ```bash
 SUBPLZ_WEB_QUEUE_BACKEND=redis \
@@ -357,7 +401,7 @@ shared filesystem.
 
 ### Before going public
 
-- Implement `billing.start_checkout` and its webhook.
+- Set the Stripe keys, the webhook and SMTP (see *Turning payments on*).
 - Put a reverse proxy in front for TLS and upload limits.
 - Add a retention job — audiobooks are large and artifacts are kept forever.
 - Run workers on hardware that can take it. Alignment needs roughly 2–3 GB of

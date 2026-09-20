@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from datetime import timezone
 from pathlib import Path
 
-from . import languages, render
+from . import billing, languages, render
 from .aligner import AlignRequest, aligner
 from .db import Artifact, Job, JobStatus, SessionLocal, utcnow
 from .settings import settings
@@ -408,6 +408,11 @@ def run_job(job_id: str) -> None:
             pass
         _set(job_id, status=JobStatus.failed, error=str(exc)[:4000],
              stage="Failed", finished_at=utcnow())
+        # Our failure, not theirs: a credit spent on this run goes back.
+        try:
+            billing.refund_job(job_id)
+        except Exception:  # noqa: BLE001
+            log.exception("job %s: could not refund after failure", job_id)
 
 
 def _stream_aligner(job_id: str, request: AlignRequest, log_path: Path) -> int:
