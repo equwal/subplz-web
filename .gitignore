@@ -1,0 +1,23 @@
+# Runtime state: uploads, artifacts, the job database.
+data/
+
+# Environments
+.venv/
+venv*/
+
+# Local config — copy .env.example and edit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~

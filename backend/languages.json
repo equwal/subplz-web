@@ -1,0 +1,493 @@
+{
+  "generated_from": {
+    "pysbd": 23,
+    "stanza": 95
+  },
+  "languages": [
+    {
+      "code": "af",
+      "name": "Afrikaans",
+      "splitter": "stanza"
+    },
+    {
+      "code": "am",
+      "name": "Amharic",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "ang",
+      "name": "Old English (ca. 450-1100)",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ar",
+      "name": "Arabic",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "be",
+      "name": "Belarusian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "bg",
+      "name": "Bulgarian",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "bn",
+      "name": "Bengali",
+      "splitter": "stanza"
+    },
+    {
+      "code": "bxr",
+      "name": "Russia Buriat",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ca",
+      "name": "Catalan",
+      "splitter": "stanza"
+    },
+    {
+      "code": "cop",
+      "name": "Coptic",
+      "splitter": "stanza"
+    },
+    {
+      "code": "cs",
+      "name": "Czech",
+      "splitter": "stanza"
+    },
+    {
+      "code": "cu",
+      "name": "Church Slavic",
+      "splitter": "stanza"
+    },
+    {
+      "code": "cy",
+      "name": "Welsh",
+      "splitter": "stanza"
+    },
+    {
+      "code": "da",
+      "name": "Danish",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "de",
+      "name": "German",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "el",
+      "name": "Modern Greek (1453-)",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "et",
+      "name": "Estonian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "eu",
+      "name": "Basque",
+      "splitter": "stanza"
+    },
+    {
+      "code": "fa",
+      "name": "Persian",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "fi",
+      "name": "Finnish",
+      "splitter": "stanza"
+    },
+    {
+      "code": "fo",
+      "name": "Faroese",
+      "splitter": "stanza"
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "fro",
+      "name": "Old French (842-ca. 1400)",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ga",
+      "name": "Irish",
+      "splitter": "stanza"
+    },
+    {
+      "code": "gd",
+      "name": "Scottish Gaelic",
+      "splitter": "stanza"
+    },
+    {
+      "code": "gl",
+      "name": "Galician",
+      "splitter": "stanza"
+    },
+    {
+      "code": "got",
+      "name": "Gothic",
+      "splitter": "stanza"
+    },
+    {
+      "code": "grc",
+      "name": "Ancient Greek (to 1453)",
+      "splitter": "stanza"
+    },
+    {
+      "code": "gv",
+      "name": "Manx",
+      "splitter": "stanza"
+    },
+    {
+      "code": "hbo",
+      "name": "Ancient Hebrew",
+      "splitter": "stanza"
+    },
+    {
+      "code": "he",
+      "name": "Hebrew",
+      "splitter": "stanza"
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "hr",
+      "name": "Croatian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "hsb",
+      "name": "Upper Sorbian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "hu",
+      "name": "Hungarian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "hy",
+      "name": "Armenian",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "hyw",
+      "name": "Western Armenian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "id",
+      "name": "Indonesian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "is",
+      "name": "Icelandic",
+      "splitter": "stanza"
+    },
+    {
+      "code": "it",
+      "name": "Italian",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "ja",
+      "name": "Japanese",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "ka",
+      "name": "Georgian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "kk",
+      "name": "Kazakh",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "kmr",
+      "name": "Northern Kurdish",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ko",
+      "name": "Korean",
+      "splitter": "stanza"
+    },
+    {
+      "code": "kpv",
+      "name": "Komi-Zyrian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ky",
+      "name": "Kirghiz",
+      "splitter": "stanza"
+    },
+    {
+      "code": "la",
+      "name": "Latin",
+      "splitter": "stanza"
+    },
+    {
+      "code": "lij",
+      "name": "Ligurian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "lt",
+      "name": "Lithuanian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "lv",
+      "name": "Latvian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "lzh",
+      "name": "Literary Chinese",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ml",
+      "name": "Malayalam",
+      "splitter": "stanza"
+    },
+    {
+      "code": "mr",
+      "name": "Marathi",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "mt",
+      "name": "Maltese",
+      "splitter": "stanza"
+    },
+    {
+      "code": "multilingual",
+      "name": "multilingual",
+      "splitter": "stanza"
+    },
+    {
+      "code": "my",
+      "name": "Burmese",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "myv",
+      "name": "Erzya",
+      "splitter": "stanza"
+    },
+    {
+      "code": "nb",
+      "name": "Norwegian Bokmål",
+      "splitter": "stanza"
+    },
+    {
+      "code": "nds",
+      "name": "Low German",
+      "splitter": "stanza"
+    },
+    {
+      "code": "nl",
+      "name": "Dutch",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "nn",
+      "name": "Norwegian Nynorsk",
+      "splitter": "stanza"
+    },
+    {
+      "code": "or",
+      "name": "Oriya (macrolanguage)",
+      "splitter": "stanza"
+    },
+    {
+      "code": "orv",
+      "name": "Old Russian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ota",
+      "name": "Ottoman Turkish (1500-1928)",
+      "splitter": "stanza"
+    },
+    {
+      "code": "pcm",
+      "name": "Nigerian Pidgin",
+      "splitter": "stanza"
+    },
+    {
+      "code": "pl",
+      "name": "Polish",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "pt",
+      "name": "Portuguese",
+      "splitter": "stanza"
+    },
+    {
+      "code": "qaf",
+      "name": "qaf",
+      "splitter": "stanza"
+    },
+    {
+      "code": "qpm",
+      "name": "qpm",
+      "splitter": "stanza"
+    },
+    {
+      "code": "qtd",
+      "name": "qtd",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ro",
+      "name": "Romanian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ru",
+      "name": "Russian",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "sa",
+      "name": "Sanskrit",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sd",
+      "name": "Sindhi",
+      "splitter": "stanza"
+    },
+    {
+      "code": "si",
+      "name": "Sinhala",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sk",
+      "name": "Slovak",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "sl",
+      "name": "Slovenian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sme",
+      "name": "Northern Sami",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sq",
+      "name": "Albanian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sr",
+      "name": "Serbian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "sv",
+      "name": "Swedish",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ta",
+      "name": "Tamil",
+      "splitter": "stanza"
+    },
+    {
+      "code": "te",
+      "name": "Telugu",
+      "splitter": "stanza"
+    },
+    {
+      "code": "th",
+      "name": "Thai",
+      "splitter": "stanza"
+    },
+    {
+      "code": "tr",
+      "name": "Turkish",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ug",
+      "name": "Uighur",
+      "splitter": "stanza"
+    },
+    {
+      "code": "uk",
+      "name": "Ukrainian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "ur",
+      "name": "Urdu",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "vi",
+      "name": "Vietnamese",
+      "splitter": "stanza"
+    },
+    {
+      "code": "wo",
+      "name": "Wolof",
+      "splitter": "stanza"
+    },
+    {
+      "code": "xcl",
+      "name": "Classical Armenian",
+      "splitter": "stanza"
+    },
+    {
+      "code": "zh",
+      "name": "Chinese",
+      "splitter": "pysbd"
+    },
+    {
+      "code": "zh-hans",
+      "name": "zh-hans",
+      "splitter": "stanza"
+    },
+    {
+      "code": "zh-hant",
+      "name": "zh-hant",
+      "splitter": "stanza"
+    }
+  ]
+}

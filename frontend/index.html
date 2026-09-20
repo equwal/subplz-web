@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SubPlz — Audiobook to Subtitles</title>
+<link rel="stylesheet" href="/style.css?v=6">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">🎧</span>
+    <div>
+      <h1>SubPlz</h1>
+      <p class="tagline">Line an audiobook up with its ebook, sentence by sentence.</p>
+    </div>
+  </div>
+  <div id="quota" class="quota" hidden></div>
+</header>
+
+<main>
+  <section class="pitch">
+    <p>
+      Drop in an audiobook and the ebook it was read from. You get back subtitles
+      timed to the narration, with the wording taken from your own book — not
+      from a machine's guess at what it heard.
+    </p>
+    <ul class="uses">
+      <li><strong>HoshiReader whispersync</strong> — a three-file package: audio, book, timings.</li>
+      <li><strong>Subtitled video</strong> — a YouTube-ready cut with the text on screen.</li>
+    </ul>
+    <p class="muted small" id="freetier">One free book every 24 hours.</p>
+  </section>
+
+  <!-- step 1: drop -->
+  <section id="dropzone" class="dropzone" tabindex="0" role="button"
+           aria-label="Drop an audio file and an ebook, or click to choose files">
+    <input type="file" id="filepicker" multiple hidden
+           accept=".m4b,.m4a,.mp3,.opus,.ogg,.oga,.flac,.wav,.aac,.wma,.mka,.mkv,.mp4,.webm,.avi,.mov,.epub,.txt,.srt,.vtt,.ass,.fb2,.zip,.mobi,.azw,.azw3,.prc">
+    <div class="dz-inner">
+      <div class="dz-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+        </svg>
+      </div>
+      <p class="dz-title" id="dz-title">Drop your audiobook <em>and</em> ebook here</p>
+      <p class="dz-sub" id="dz-sub">One at a time or both at once — order doesn't matter.
+        A folder of per-chapter files works too.
+        Or <button type="button" id="browse" class="linkbtn">browse</button>.</p>
+      <p class="dz-formats">Audio: m4b · mp3 · m4a · opus · flac · wav · mkv
+        &nbsp;|&nbsp; Book: epub · fb2 · mobi · azw3 · txt</p>
+    </div>
+  </section>
+
+  <!-- what has been dropped so far -->
+  <section id="staged" class="panel staged" hidden>
+    <div class="slot" id="slot-audio">
+      <span class="slot-tick" aria-hidden="true"></span>
+      <div class="slot-body">
+        <div class="slot-label">Audiobook</div>
+        <div class="slot-value">Waiting for an audio file</div>
+      </div>
+      <button type="button" class="slot-x" data-slot="audio" title="Remove">×</button>
+    </div>
+    <div class="slot" id="slot-text">
+      <span class="slot-tick" aria-hidden="true"></span>
+      <div class="slot-body">
+        <div class="slot-label">Book</div>
+        <div class="slot-value">Waiting for an ebook</div>
+      </div>
+      <button type="button" class="slot-x" data-slot="text" title="Remove">×</button>
+    </div>
+  </section>
+
+  <div id="uploading" class="panel uploading" hidden>
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="up-body">
+      <p class="up-title">Uploading &amp; analysing…</p>
+      <div class="bar"><div id="upbar" class="bar-fill"></div></div>
+      <p id="uptext" class="muted small">0%</p>
+    </div>
+  </div>
+
+  <div id="error" class="panel error" hidden role="alert"></div>
+
+  <!-- step 2: confirm -->
+  <section id="confirm" class="panel confirm" hidden>
+    <h2>Ready to align</h2>
+    <dl class="pairing">
+      <div><dt>Audiobook</dt><dd id="c-audio"></dd></div>
+      <div><dt>Book</dt><dd id="c-text"></dd></div>
+    </dl>
+
+    <div class="langrow">
+      <label for="language">Language</label>
+      <select id="language"></select>
+      <span id="detected" class="detected"></span>
+    </div>
+    <p id="splitnote" class="muted small"></p>
+
+    <div id="match" class="match" hidden>
+      <div class="match-head">
+        <span id="match-badge" class="match-badge"></span>
+        <span id="match-summary"></span>
+      </div>
+      <ul id="match-warnings" class="match-warnings"></ul>
+    </div>
+
+    <div class="actions">
+      <button id="start" class="primary">Start alignment</button>
+      <button id="discard" class="ghost">Discard</button>
+    </div>
+    <p class="muted small" id="eta"></p>
+  </section>
+
+  <!-- step 3: jobs -->
+  <section id="jobs-section" hidden>
+    <h2 class="section-title">Your conversions</h2>
+    <ul id="jobs" class="jobs"></ul>
+  </section>
+</main>
+
+<footer>
+  <p class="muted small">
+    Alignment by <a href="https://github.com/kanjieater/SubPlz" target="_blank" rel="noopener">SubPlz</a>.
+    Every line of text comes from the book you upload, so names and spelling stay right.
+  </p>
+</footer>
+
+<script src="/app.js?v=6"></script>
+</body>
+</html>
