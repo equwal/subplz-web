@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     # Presigned-URL lifetime for s3 downloads.
     download_url_ttl_seconds: int = 3600
 
+    # How long the server keeps a visitor's files. See retention.py.
+    input_retention_hours: int = 24
+    artifact_retention_days: int = 7
+
     # SQLite locally; set to a postgresql+psycopg:// URL in production.
     database_url: str = ""
 
@@ -64,6 +68,9 @@ class Settings(BaseSettings):
     # is false the site sells nothing, whatever billing_enabled says: credits
     # that buy nothing must not be for sale.
     cloud_enabled: bool = False
+    # Where customers write to: shown on the terms page and in the footer. The
+    # payment processor wants one on the site before it lets a shop go live.
+    contact_email: str = ""
     # Off on localhost so nothing blocks you; flip on for the public release.
     billing_enabled: bool = False
 

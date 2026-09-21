@@ -9,6 +9,7 @@ const el = {
   confirm: $('confirm'), cAudio: $('c-audio'), cText: $('c-text'),
   language: $('language'), detected: $('detected'), splitnote: $('splitnote'),
   start: $('start'), discard: $('discard'), eta: $('eta'),
+  cloud: $('cloud'), cloudNote: $('cloud-note'), startCloud: $('start-cloud'),
   jobsSection: $('jobs-section'), jobs: $('jobs'), quota: $('quota'),
   freetier: $('freetier'), staged: $('staged'), dzTitle: $('dz-title'),
   match: $('match'), matchBadge: $('match-badge'),
@@ -334,10 +335,86 @@ async function showConfirm() {
   el.start.textContent = saved?.doneUntil && !saved.complete ? 'Continue' : 'Start';
   el.confirm.hidden = false;
   el.start.disabled = false;
+  renderCloudOffer();
   el.confirm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 el.discard.addEventListener('click', () => { clearError(); resetToDrop(); });
+
+/* ---------------- the cloud: the same job, on the server's hardware ---------------- */
+
+function renderCloudOffer() {
+  const a = account;
+  el.cloud.hidden = !a?.cloud_available;
+  if (el.cloud.hidden) return;
+  const price = !a.billing_enabled ? ''
+    : a.subscribed ? ' Included in your plan.'
+    : a.credits > 0 ? ` One credit; you have ${a.credits}.`
+    : ' One credit.';
+  el.cloudNote.textContent =
+    'For a phone, an old computer, or a tab you want to close: the files are uploaded, the work is done ' +
+    'there, and the result waits for you on this page. The files are deleted after the job.' + price;
+  el.startCloud.disabled = false;
+}
+
+el.startCloud.addEventListener('click', () => {
+  if (!draft || running) return;
+  clearError();
+  // Ask for the credit before the upload, not after an hour of it.
+  if (account.billing_enabled && !account.cloud_allowed) {
+    openPricing('A conversion on our server takes one credit. In this tab it is free, without limit.');
+    return;
+  }
+  const { audio, book, cover } = draft;
+  const language = el.language.value;
+  el.confirm.hidden = true;
+  el.uploading.hidden = false;
+  el.upbar.style.width = '0%';
+  el.uptext.textContent = 'Starting…';
+
+  const form = new FormData();
+  for (const f of [...audio, book]) form.append('files', f, f.name);
+  if (cover && signedIn) form.append('files', cover, cover.name);
+
+  const back = (message) => { el.uploading.hidden = true; el.confirm.hidden = false; showError(message); };
+  // XHR and not fetch: it reports upload progress, and these files are big.
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/uploads');
+  xhr.withCredentials = true;
+  xhr.upload.onprogress = (e) => {
+    if (!e.lengthComputable) return;
+    const pct = Math.round((e.loaded / e.total) * 100);
+    el.upbar.style.width = `${pct}%`;
+    el.uptext.textContent = pct < 100 ? `${pct}% — ${fmtBytes(e.loaded)} of ${fmtBytes(e.total)}` : 'Checking the book…';
+  };
+  xhr.onerror = () => back('The upload failed: the connection to the server was lost.');
+  xhr.onload = async () => {
+    let body = null;
+    try { body = JSON.parse(xhr.responseText); } catch { /* handled below */ }
+    if (xhr.status < 200 || xhr.status >= 300 || !body?.job) {
+      back(typeof body?.detail === 'string' ? body.detail : `The upload failed (${xhr.status}).`);
+      return;
+    }
+    try {
+      await api(`/api/jobs/${body.job.id}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language }),
+      });
+    } catch (e) {
+      // The files are on the server but nothing runs: do not leave them there.
+      api(`/api/jobs/${body.job.id}`, { method: 'DELETE' }).catch(() => {});
+      if (e.status === 402) { el.uploading.hidden = true; el.confirm.hidden = false; openPricing(e.message); }
+      else back(e.message);
+      return;
+    }
+    resetToDrop();
+    toast('The server has the book. You can close this tab; the result will be under "Your conversions" on this page.', 12000);
+    refreshJobs();
+    refreshAccount();
+  };
+  xhr.send(form);
+});
 
 /* ---------------- the job, in this tab ---------------- */
 
@@ -708,7 +785,7 @@ el.picker.addEventListener('change', () => {
 
 async function openPricing(why) {
   el.pricingWhy.textContent = why ||
-    'In this tab a conversion is free, without limit. A credit converts a book on our GPU: minutes and not hours, from any device.';
+    'In this tab a conversion is free, without limit. A credit converts a book on our server: from any device, and you can close the tab.';
   el.plans.innerHTML = '<p class="muted">Loading…</p>';
   if (!el.pricingDialog.open) el.pricingDialog.showModal();
 
@@ -763,7 +840,7 @@ async function checkout(planId, btn) {
 }
 
 el.buyBtn.addEventListener('click', () => openPricing(
-  'One credit converts one book on our GPU: minutes and not hours, from any device.'));
+  'One credit converts one book on our server: from any device, and you can close the tab.'));
 
 el.portalBtn.addEventListener('click', async () => {
   try {

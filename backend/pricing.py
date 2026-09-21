@@ -77,7 +77,7 @@ DEFAULT_PLANS: list[Plan] = [
         name="One book",
         credits=1,
         price_cents=499,
-        blurb="One book on our GPU: minutes, from any device.",
+        blurb="One book on our server, from any device.",
     ),
     Plan(
         id="pack5",

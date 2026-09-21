@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms, privacy and refunds — SubRead</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  main.legal { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
+  main.legal h2 { margin-top: 32px; }
+  main.legal li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<main class="legal">
+  <p><a href="/">← SubRead</a></p>
+  <h1>Terms, privacy and refunds</h1>
+  <p class="muted">Short, and meant to be read. Contact: <span class="contact">see below</span>.</p>
+
+  <h2>What this is</h2>
+  <p>SubRead lines an audiobook up with its ebook and gives you timed subtitles, videos and a
+    read-along book. All of the code is public, and you may run it yourself.</p>
+  <ul>
+    <li><strong>In your browser (free):</strong> the work is done on your machine. Your audio and
+      your book are not uploaded. The server gets the names and sizes of the files and the
+      finished subtitles, so that this page can list your conversions.</li>
+    <li><strong>On our server (paid):</strong> you upload the audio and the book, and the server
+      does the work. One credit converts one book.</li>
+  </ul>
+
+  <h2>Your files</h2>
+  <ul>
+    <li>Use only files that you have the right to use. You keep all rights in them. We claim none.</li>
+    <li>Files uploaded for a server conversion are deleted when the job succeeds. If a job fails,
+      is cancelled, or is never started, they are kept for <span class="input-hours">24</span> hours
+      so that you can try again, and then deleted.</li>
+    <li>Results (subtitles, videos) are kept for <span class="result-days">7</span> days and then
+      deleted. Download what you want to keep.</li>
+    <li>Nobody looks at your files, they are not shared, and they are not used to train anything.
+      There is no public library of uploads.</li>
+  </ul>
+
+  <h2>Payments and refunds</h2>
+  <ul>
+    <li>Payments are taken by Stripe. We never see your card.</li>
+    <li>Credits do not expire.</li>
+    <li>A job that fails or that you cancel gives its credit back by itself.</li>
+    <li>If a result is not usable (for example the subtitles do not match the book), write to us
+      within 14 days and we return the credit or the money, as you choose. Try the free
+      conversion in your browser first: it uses the same method, and it shows whether your
+      book and your audio match.</li>
+    <li>Unused credits are refunded on request within 14 days of the purchase.</li>
+  </ul>
+
+  <h2>Accounts and privacy</h2>
+  <ul>
+    <li>Without an account, a cookie keeps your conversions together. It holds a random identifier
+      and nothing else. There are no advertising or analytics cookies.</li>
+    <li>An account is an email address. You get one when you pay (Stripe collects the address) or
+      when you ask for a sign-in link. There are no passwords. We use the address for sign-in
+      links and for answers to your messages, and for nothing else.</li>
+    <li>We store: your email address (if you gave one), your credits and purchases, and the list of
+      your conversions (file names, sizes, language, times). Write to us to have all of it deleted.</li>
+    <li>The server keeps ordinary web logs (IP address, time, page) for a short time, for security.</li>
+  </ul>
+
+  <h2>Copyright complaints</h2>
+  <p>We do not publish or share what users upload, and uploads are deleted as said above. If you
+    believe that material on this service infringes your copyright, write to the contact address
+    with: the work, where it is on this service, your contact details, a statement that you act in
+    good faith for the owner of the right, and your signature. We remove what the notice properly
+    names, and we close the accounts of repeat infringers.</p>
+
+  <h2>No warranty</h2>
+  <p>The subtitles are made by a machine that matches a rough transcript to your book. They are
+    usually good and never perfect. The service is given as it is, without warranty. Our liability
+    is limited to what you paid in the 12 months before the claim. Nothing here limits rights that
+    the law of your country gives you as a consumer.</p>
+
+  <h2>Contact</h2>
+  <p><span class="contact">No contact address is set for this server.</span></p>
+</main>
+<script type="module">
+  const site = await (await fetch('/api/pricing')).json();
+  const put = (cls, value) => document.querySelectorAll('.' + cls).forEach((el) => { el.textContent = value; });
+  if (site.contact_email) {
+    document.querySelectorAll('.contact').forEach((el) => {
+      const a = document.createElement('a');
+      a.href = 'mailto:' + site.contact_email;
+      a.textContent = site.contact_email;
+      el.replaceChildren(a);
+    });
+  }
+  put('input-hours', site.input_retention_hours);
+  put('result-days', site.artifact_retention_days);
+</script>
+</body>
+</html>

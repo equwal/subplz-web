@@ -139,6 +139,11 @@
       <button id="discard" class="ghost">Discard</button>
     </div>
     <p class="muted small" id="eta"></p>
+
+    <div id="cloud" class="cloud" hidden>
+      <p><strong>Or let our server do it.</strong> <span id="cloud-note"></span></p>
+      <button id="start-cloud" class="ghost">Convert on our server</button>
+    </div>
   </section>
 
   <!-- step 3: the job, running in this tab -->
@@ -170,6 +175,11 @@
     speech model <a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a>.
     Every line of text comes from the book you upload, so names and spelling stay right.
   </p>
+  <p class="muted small">
+    <a href="/terms.html">Terms, privacy and refunds</a> ·
+    <a href="https://github.com/equwal/subplz-web" target="_blank" rel="noopener">Source code</a> ·
+    <a href="https://github.com/equwal/subread-android/releases/latest" target="_blank" rel="noopener">Android app</a>
+  </p>
 </footer>
 
 <dialog id="signin-dialog" class="modal">
@@ -186,12 +196,13 @@
 
 <dialog id="pricing-dialog" class="modal wide">
   <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
-  <h2>Get the YouTube video</h2>
+  <h2>Credits for our server</h2>
   <p id="pricing-why" class="muted"></p>
   <div id="plans" class="plans"></div>
   <p class="muted small" id="pricing-foot">
-    Paid through Stripe; we never see your card. One credit is one book with
-    every output, and credits never expire. Paying also creates your account,
+    Paid through Stripe; we never see your card. One credit converts one book
+    on our server, with every output. Credits never expire, and a job that
+    fails gives its credit back. In this tab a conversion is always free. Paying also creates your account,
     under the email you give Stripe.
   </p>
 </dialog>

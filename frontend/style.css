@@ -300,6 +300,9 @@ button.compact { padding: 6px 12px; font-size: 13px; }
 }
 .tag.free { background: var(--ok-soft); color: var(--ok); }
 
+.cloud { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.cloud p { margin: 0 0 10px; }
+
 /* ---------- dialogs ---------- */
 dialog.modal {
   border: 1px solid var(--line); border-radius: var(--radius);

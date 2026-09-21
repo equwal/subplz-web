@@ -313,6 +313,9 @@ def get_pricing():
         "billing_enabled": settings.billing_enabled,
         "payments_available": settings.payments_configured,
         "tiers": pricing.TIER_OUTPUTS,
+        "contact_email": settings.contact_email,
+        "input_retention_hours": settings.input_retention_hours,
+        "artifact_retention_days": settings.artifact_retention_days,
         "plans": pricing.as_dicts(),
     }
 

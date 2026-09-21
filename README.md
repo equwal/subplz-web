@@ -337,6 +337,17 @@ A job in the browser costs the server nothing, so it is never counted and never
 refused. A server job takes its credit at the start. A job that fails or is
 cancelled gets the credit back.
 
+The page offers the server job on the confirm screen ("Convert on our server"):
+the files are uploaded, the job runs on the server, and the result waits in the
+list of conversions, so the visitor can close the tab. The page asks for the
+credit before the upload, not after it.
+
+The server does not keep a visitor's files past their use
+(`backend/retention.py`, once an hour): uploads go when the job succeeds, or
+after 24 hours when it did not; results go after 7 days. `/terms.html` says the
+same to the visitor, with the numbers read from the server, and shows
+`SUBPLZ_WEB_CONTACT_EMAIL`.
+
 `SUBPLZ_WEB_CLOUD_ENABLED` says that fast conversion is on offer. While it is
 false the page shows no way to buy credits, whatever `SUBPLZ_WEB_BILLING_ENABLED`
 says: credits that buy nothing must not be for sale.
@@ -434,3 +445,9 @@ restarts at 0% for every chapter.
 
 Single files longer than about four hours can exhaust RAM, per upstream. Prefer
 chaptered `m4b`, or a folder of per-chapter files.
+
+## Licence
+
+AGPL-3.0: see `LICENSE`. You may use, change and host this, and you must give
+your users the source of what you host. `NOTICE` has the licences of the work
+this is built on (SubPlz, whisper.cpp, Whisper).

@@ -263,9 +263,10 @@ def probe_chapters(path: Path) -> int:
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-show_chapters", "-print_format", "json",
              str(path)],
-            capture_output=True, text=True, timeout=120, check=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=120, check=True,
         )
-        return max(1, len(json.loads(out.stdout).get("chapters", [])))
+        return max(1, len(json.loads(out.stdout or "{}").get("chapters", [])))
     except (subprocess.SubprocessError, ValueError, OSError):
         return 1
 

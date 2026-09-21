@@ -8,6 +8,8 @@ CORS config and no second server.
 
 from __future__ import annotations
 
+import asyncio
+
 import logging
 import mimetypes
 import subprocess
@@ -89,11 +91,28 @@ async def lifespan(_: FastAPI):
         "on" if settings.billing_enabled else "off",
     )
     _requeue_interrupted()
-    with SessionLocal() as s:
-        from .api import expire_stale_local_jobs
-        expire_stale_local_jobs(s)
+    sweeper = asyncio.create_task(_housekeeping())
     yield
+    sweeper.cancel()
     queue.shutdown()
+
+
+async def _housekeeping() -> None:
+    """Once an hour: let go of abandoned browser jobs, and delete files past their time."""
+    from . import retention
+    from .api import expire_stale_local_jobs
+
+    while True:
+        def once() -> None:
+            with SessionLocal() as s:
+                expire_stale_local_jobs(s)
+                retention.sweep(s)
+
+        try:
+            await asyncio.to_thread(once)       # deleting a book's files is slow; do not hold the site up
+        except Exception:  # noqa: BLE001 - housekeeping must not take the site down
+            log.exception("housekeeping failed")
+        await asyncio.sleep(3600)
 
 
 app = FastAPI(
