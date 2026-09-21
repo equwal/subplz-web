@@ -542,7 +542,71 @@ function renderResultButtons() {
     (b) => makeVideo('mkv', b));
   button('⬇ Video for YouTube (.mp4)', 'No subtitles baked in — add the .srt in YouTube Studio', '',
     (b) => makeVideo('mp4', b));
+  // honjimaku is a library for Japanese books.
+  if (running.job.language === 'ja') {
+    button('⇪ Share on honjimaku', 'Give the subtitles to honjimaku.com, a free library for Japanese audiobooks', 'secondary',
+      () => openShare());
+  }
 }
+
+/* ---------------- share on honjimaku ---------------- */
+
+// A test can point this at a local honjimaku.
+const honjimaku = () => window.SUBREAD_HONJIMAKU || 'https://honjimaku.com';
+const shareEl = {
+  dialog: $('share-dialog'), form: $('share-form'), title: $('share-title'), bookId: $('share-book-id'),
+  key: $('share-key'), send: $('share-send'), status: $('share-status'),
+};
+
+function openShare() {
+  const r = running.job.result;
+  shareEl.title.value = shareEl.title.value || r.stem;
+  try { shareEl.key.value = localStorage.getItem('honjimaku-key') || ''; } catch { /* private window */ }
+  shareEl.status.hidden = true;
+  shareEl.dialog.showModal();
+}
+
+shareEl.form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = running?.job.result;
+  if (!r) return;
+  const say = (text, link) => {
+    shareEl.status.hidden = false;
+    shareEl.status.textContent = text;
+    if (link) {
+      const a = document.createElement('a');
+      a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = ' Open it on honjimaku.';
+      shareEl.status.append(a);
+    }
+  };
+  const key = shareEl.key.value.trim();
+  const call = async (path, options) => {
+    const res = await fetch(honjimaku() + path, { ...options, credentials: 'omit', headers: { Authorization: key, ...(options.headers || {}) } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `honjimaku answered ${res.status}.`);
+    return body;
+  };
+  shareEl.send.disabled = true;
+  say('Sending…');
+  try {
+    // Finds the book if honjimaku has it, however the title is typed, or makes it.
+    const bookId = shareEl.bookId.value.trim();
+    const { entry_id: entry } = await call('/api/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: shareEl.title.value.trim(), ...(bookId ? { book_id: bookId } : {}) }),
+    });
+    const form = new FormData();
+    form.append('file', new File([r.srt], r.srtName, { type: 'application/x-subrip' }));
+    const done = await call(`/api/entries/${entry}/upload`, { method: 'POST', body: form });
+    try { localStorage.setItem('honjimaku-key', key); } catch { /* private window */ }
+    if (done.problems?.length) say(`honjimaku did not take the file. ${done.problems.join(' ')}`);
+    else say('Shared. Thank you.', `${honjimaku()}/entry/${entry}`);
+  } catch (err) {
+    say(err.message === 'Failed to fetch' ? 'honjimaku.com could not be reached.' : err.message);
+  }
+  shareEl.send.disabled = false;
+});
 
 async function makeEpub(btn) {
   const label = btn.textContent;

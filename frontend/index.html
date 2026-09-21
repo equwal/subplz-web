@@ -197,6 +197,27 @@
   <p id="signin-note" class="muted small" hidden></p>
 </dialog>
 
+<dialog id="share-dialog" class="modal">
+  <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
+  <h2>Share on honjimaku</h2>
+  <p class="muted"><a href="https://honjimaku.com" target="_blank" rel="noopener">honjimaku.com</a> is a free
+    library of subtitles for Japanese audiobooks. Other learners can then read along with this book
+    and do not have to make the subtitles again.</p>
+  <form id="share-form" class="share-form" autocomplete="off">
+    <label for="share-title">Title of the book, as the audiobook shop writes it</label>
+    <input id="share-title" required maxlength="200">
+    <label for="share-book-id">Audiobook ID, if there is one (Audible ASIN, audiobook.jp number)</label>
+    <input id="share-book-id" maxlength="40" pattern="[A-Za-z0-9 ._\-]*" placeholder="B0BPXSSWVF">
+    <label for="share-key">Your honjimaku API key
+      (<a href="https://honjimaku.com/account" target="_blank" rel="noopener">make an account, then "Generate API key"</a>)</label>
+    <input id="share-key" type="password" required autocomplete="off">
+    <p class="muted small">The key stays in this browser. The subtitles go from this tab to honjimaku.com and to
+      nowhere else. They hold the words of the book: share them only if you may.</p>
+    <button class="primary" id="share-send">Share the subtitles</button>
+  </form>
+  <p id="share-status" class="muted small" hidden></p>
+</dialog>
+
 <dialog id="pricing-dialog" class="modal wide">
   <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
   <h2>Credits for our server</h2>

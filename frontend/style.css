@@ -303,6 +303,11 @@ button.compact { padding: 6px 12px; font-size: 13px; }
 .cloud { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
 .cloud p { margin: 0 0 10px; }
 
+.share-form { display: grid; gap: 6px; margin: 14px 0 8px; }
+.share-form label { font-size: 13px; font-weight: 600; margin-top: 6px; }
+.share-form input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: transparent; color: inherit; }
+.share-form button { margin-top: 10px; }
+
 /* ---------- dialogs ---------- */
 dialog.modal {
   border: 1px solid var(--line); border-radius: var(--radius);
