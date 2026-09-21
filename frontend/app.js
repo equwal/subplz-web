@@ -507,6 +507,10 @@ function renderWorking(st) {
 }
 
 function showResults(r) {
+  // The ask goes to people who got a book for nothing, at the moment it worked.
+  // Not to a customer: someone who pays for credits has done their part.
+  const chipIn = document.getElementById('chip-in');
+  if (chipIn) chipIn.hidden = Boolean(account?.credits > 0 || account?.subscribed);
   el.stop.hidden = true;
   el.stop.disabled = false;
   el.results.hidden = false;
