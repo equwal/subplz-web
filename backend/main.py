@@ -137,6 +137,14 @@ async def cross_origin_isolation(request, call_next):
     response = await call_next(request)
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
+    # The engine's modules import each other by bare path, so a browser that
+    # kept an old engine/asr.js would run it with a new app.js. Make each of
+    # them ask the server first (an ETag answers in one round trip); the
+    # pinned libraries and weights under /vendor/ may stay a day.
+    if request.url.path.startswith("/vendor/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    elif response.headers.get("content-type", "").startswith(("text/javascript", "text/html")):
+        response.headers["Cache-Control"] = "no-cache"
     return response
 
 
