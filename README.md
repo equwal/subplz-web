@@ -9,7 +9,7 @@ from a machine's guess at what it heard. Two things to do with that:
 - **HoshiReader whispersync** — the `.srt` is the timing file.
 - **Subtitled video** — a YouTube-ready MP4 with a selectable caption track.
 
-One free book per rolling 24 hours; see [Pricing](#pricing).
+Free in the browser, without limit; see [Pricing](#pricing).
 
 ---
 
@@ -229,7 +229,7 @@ drop corrupt frames instead of letting a single bad chapter abort the whole run.
 | `backend/languages.py` | language registry and splitter routing |
 | `backend/queue.py` | in-process or Redis dispatch |
 | `backend/storage.py` | local disk or S3 |
-| `backend/billing.py` | who may do what: the free window, credits, the two tiers |
+| `backend/billing.py` | who may do what: free in the browser, a credit for a server job |
 | `backend/payments.py` | Stripe: checkout, idempotent fulfilment, webhooks |
 | `backend/accounts.py` | one email, one account; folding anonymous work in |
 | `backend/auth.py` | emailed one-time sign-in links |
@@ -310,45 +310,36 @@ mangles multipart filenames, and this client does not.
 
 ## Pricing
 
-One free book per rolling 24 hours, then paid. The window is rolling rather than
-a calendar day: the allowance returns 24 hours after the run that used it.
+All of the code is public, and anyone may host it. What this site sells is the
+use of its operator's machines, and nothing else.
+
+**Free and paid are split by where the work is done, not by what comes out.**
+
+| Tier | Where it runs | You get | Costs |
+|---|---|---|---|
+| free | the visitor's browser (or the Android app) | each output: `.srt`, `.mkv`, `.mp4`, the read-along `.epub` | nothing, without limit |
+| cloud | this server's hardware: a large speech model on a GPU | the same, in minutes and not hours, from any device | one credit |
 
 | Plan | Price | Per book |
 |---|---|---|
-| Free | — | 1 per 24h |
-| One book | $3.49 | $3.49 |
-| 5 books | $12.99 | $2.60 |
-| 20 books | $39.99 | $2.00 |
-| Unlimited monthly | $14.99 | — |
+| One book | $4.99 | $4.99 |
+| 5 books | $16.99 | $3.40 |
+| 20 books | $39.00 | $1.95 |
 
-Set against the market (2026): the direct competitors are cheap or free —
-Voxlight $29.99/year (alignment runs on the user's own Mac), Storyteller and
-syncabook free but self-hosted. The adjacent subtitling tools price for
-*transcription* and do not transfer: Sonix is $10/hour, so a 10-hour audiobook
-would be ~$100, and Happy Scribe's 120-minute $17 tier would not fit one book.
-Forced alignment is far cheaper to run than transcription, because the model is
-tiny and its output is thrown away. So: per book, priced as an impulse buy, with
-the subscription just under Otter ($16.99) and Happy Scribe ($17).
-
+A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
+buyer wraps a raw alignment API (ElevenLabs: $2.20 for a 10-hour book). Below
+$3 the fixed card fee takes too much. There is no unlimited plan: use comes in
+bursts, and one heavy user of such a plan costs more than the plan brings in.
+An operator who wants a recurring plan adds one with `SUBPLZ_WEB_PLANS_JSON`.
 Every number is an env var — see `backend/pricing.py`.
 
-**Free and paid are split by output, not by quality.**
+A job in the browser costs the server nothing, so it is never counted and never
+refused. A server job takes its credit at the start. A job that fails or is
+cancelled gets the credit back.
 
-| Tier | You get | Costs |
-|---|---|---|
-| free | `.srt` (HoshiReader) + `.mkv` with the subtitles built in | one book per rolling 24 h |
-| youtube | all of that + the clean `.mp4` for uploading | one credit, or the unlimited plan |
-
-The free tier is the whole product for someone reading along at home. The one
-paid output is the one made for an audience. The mp4 is rendered for every job
-regardless - the mkv is a stream copy of it - so paying later unlocks a finished
-job instantly (`POST /api/jobs/{id}/unlock`) instead of re-running it. A credit
-spent on a job that then fails or is cancelled is handed back.
-
-**The free tier's identity is a cookie, and only a cookie.** Anyone who clears
-it gets another free book. That is accepted: a signup wall does not belong in
-front of a tool whose pitch is "drop two files in". The real protection against
-abuse is capacity, not identity.
+`SUBPLZ_WEB_CLOUD_ENABLED` says that fast conversion is on offer. While it is
+false the page shows no way to buy credits, whatever `SUBPLZ_WEB_BILLING_ENABLED`
+says: credits that buy nothing must not be for sale.
 
 **An account is an email.** It gets attached either by following an emailed
 one-time link (no passwords anywhere) or by paying, since Stripe collects one.

@@ -15,8 +15,6 @@ const el = {
   matchSummary: $('match-summary'), matchWarnings: $('match-warnings'),
   who: $('who'), buyBtn: $('buy-btn'), portalBtn: $('portal-btn'),
   signinBtn: $('signin-btn'), signoutBtn: $('signout-btn'),
-  tiers: $('tiers'), freeNote: $('free-note'), ytNote: $('yt-note'),
-  ytCost: $('yt-cost'), paidTag: $('paid-tag'),
   signinDialog: $('signin-dialog'), signinForm: $('signin-form'),
   signinEmail: $('signin-email'), signinSend: $('signin-send'),
   signinNote: $('signin-note'),
@@ -32,7 +30,6 @@ let languagesReady = null;  // resolves once the <select> is populated
 let draft = null;           // the job awaiting confirmation
 let pollTimer = null;
 let account = null;         // last /api/account response
-let unlockJobId = null;     // the job a purchase is being made for
 
 /* ---------------- helpers ---------------- */
 
@@ -129,53 +126,17 @@ function renderAccount() {
   el.signoutBtn.hidden = !signedIn;
   el.signinBtn.hidden = signedIn || !a.email_sign_in_available;
 
-  // With billing off (localhost) nothing is for sale and nothing is locked.
-  const selling = a.billing_enabled;
+  // What is sold is conversion on this server's hardware. Nothing is for sale
+  // until that is connected; in this tab each output is free.
+  const selling = a.billing_enabled && a.cloud_available;
   el.buyBtn.hidden = !selling || a.subscribed;
   el.portalBtn.hidden = !(selling && a.subscribed);
-  el.tiers.hidden = !selling;
-  if (el.paidTag) el.paidTag.hidden = !selling;
-
   el.quota.hidden = !selling;
   if (selling) {
-    el.quota.classList.toggle('blocked', !a.free_allowed && !a.youtube_allowed);
-    el.quota.textContent = a.subscribed ? 'Unlimited plan'
-      : a.credits > 0 ? `${a.credits} credit${a.credits === 1 ? '' : 's'}`
-      : a.free_allowed ? 'Free book available'
-      : 'Free book used';
-  }
-  renderTiers();
-}
-
-/* Say what each choice will cost *this* account before they commit to it. */
-function renderTiers() {
-  const a = account;
-  if (!a || !a.billing_enabled) return;
-
-  el.freeNote.textContent = a.subscribed || a.free_allowed ? ''
-    : `Used for now — next free book ${whenText(a.next_free_at)}.`;
-  el.ytCost.textContent = a.subscribed ? 'included' : '1 credit';
-  el.ytNote.textContent = a.subscribed ? 'Included in your unlimited plan.'
-    : a.credits > 0 ? `You have ${a.credits} credit${a.credits === 1 ? '' : 's'}.`
-    : 'You have no credits yet — you can buy one on the next step.';
-
-  // Nothing free left: preselect the option that can actually start.
-  if (!a.free_allowed && !a.subscribed) {
-    const yt = document.querySelector('input[name=tier][value=youtube]');
-    if (yt) yt.checked = true;
+    el.quota.textContent = a.subscribed ? 'Cloud plan'
+      : `${a.credits} cloud credit${a.credits === 1 ? '' : 's'}`;
   }
 }
-
-function whenText(iso) {
-  if (!iso) return 'later';
-  const d = new Date(iso);
-  return 'at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
-    (d.toDateString() === new Date().toDateString() ? '' : ' tomorrow');
-}
-
-const chosenTier = () =>
-  (account && account.billing_enabled &&
-   document.querySelector('input[name=tier]:checked')?.value) || 'free';
 
 let toastTimer = null;
 function toast(msg, ms = 6000) {
@@ -388,9 +349,8 @@ el.start.addEventListener('click', async () => {
   el.start.disabled = true;
   clearError();
   const language = el.language.value;
-  const tier = chosenTier();
 
-  // Ask first: the free window and credits are the server's to say.
+  // The server keeps the list of this visitor's books; a job in this tab costs nothing.
   let registered;
   try {
     registered = await api('/api/local/jobs', {
@@ -400,19 +360,18 @@ el.start.addEventListener('click', async () => {
         audio_filename: draft.audio.length > 1 ? `${draft.audio[0].name} + ${draft.audio.length - 1} more` : draft.audio[0].name,
         audio_parts: draft.audio.length,
         audio_bytes: draft.audio.reduce((n, f) => n + f.size, 0),
-        text_filename: draft.book.name, language, tier,
+        text_filename: draft.book.name, language,
       }),
     });
   } catch (e) {
-    // 402 is not an error to apologise for; it is the price list's cue.
-    if (e.status === 402) openPricing(e.message); else showError(e.message);
+    showError(e.message);
     el.start.disabled = false;
     return;
   }
 
   const { Job, Cancelled } = await import('/engine/job.js');
   const job = new Job({ audio: draft.audio, book: draft.book, language, onStatus: renderWorking });
-  running = { job, serverId: registered.id, tier: registered.tier, cover: draft.cover };
+  running = { job, serverId: registered.id, cover: draft.cover };
   el.confirm.hidden = true;
   el.working.hidden = false;
   el.results.hidden = true;
@@ -485,7 +444,6 @@ function showResults(r) {
 
 function renderResultButtons() {
   const r = running.job.result;
-  const paid = !account?.billing_enabled || running.tier === 'youtube';
   el.resultFiles.innerHTML = '';
   const button = (label, hint, cls, onClick) => {
     const b = document.createElement('button');
@@ -501,10 +459,8 @@ function renderResultButtons() {
   }
   button('⬇ Video with subs built in (.mkv)', 'Subtitles inside the file, for MPV or VLC', '',
     (b) => makeVideo('mkv', b));
-  button(paid ? '⬇ Video for YouTube (.mp4)' : '🔒 Unlock the YouTube video (.mp4)',
-    paid ? 'No subtitles baked in — add the .srt in YouTube Studio'
-      : 'Part of the YouTube tier — one credit, or the unlimited plan',
-    paid ? '' : 'locked', (b) => (paid ? makeVideo('mp4', b) : unlockRunning(b)));
+  button('⬇ Video for YouTube (.mp4)', 'No subtitles baked in — add the .srt in YouTube Studio', '',
+    (b) => makeVideo('mp4', b));
 }
 
 async function makeEpub(btn) {
@@ -532,20 +488,6 @@ async function makeVideo(kind, btn) {
   } catch (e) { showError(`Could not make the ${kind}: ${e.message}`); }
   btn.textContent = label;
   btn.disabled = false;
-}
-
-async function unlockRunning(btn) {
-  btn.disabled = true;
-  try {
-    const j = await api(`/api/jobs/${running.serverId}/unlock`, { method: 'POST' });
-    running.tier = j.tier;
-    toast('Unlocked.');
-    renderResultButtons();
-    refreshAccount();
-  } catch (e) {
-    if (e.status === 402) { unlockJobId = running.serverId; openPricing(e.message); } else showError(e.message);
-    btn.disabled = false;
-  }
 }
 
 function save(file) {
@@ -633,12 +575,6 @@ function jobCard(j) {
       .map((a) => {
         const size = a.size_bytes ? ` <span class="dl-size">${fmtBytes(a.size_bytes)}</span>` : '';
         const t = hint[a.kind] ? ` title="${escapeHtml(hint[a.kind])}"` : '';
-        if (a.locked) {
-          // Already rendered, just not paid for: unlocking is instant.
-          return `<button type="button" class="dl locked" data-unlock="${j.id}"
-                    title="Part of the YouTube tier — one credit, or the unlimited plan"
-                    >🔒 Unlock the YouTube video (.mp4)${size}</button>`;
-        }
         return `<a class="dl ${primary.has(a.kind) ? '' : 'secondary'}"${t}
                    href="${a.url}" download>${label[a.kind] || a.kind}${size}</a>`;
       })
@@ -646,10 +582,6 @@ function jobCard(j) {
   }
 
   li.innerHTML = html;
-
-  li.querySelectorAll('[data-unlock]').forEach((btn) => {
-    btn.addEventListener('click', () => unlockJob(btn.dataset.unlock, btn));
-  });
 
   if (active) {
     const cancel = document.createElement('button');
@@ -772,29 +704,11 @@ el.picker.addEventListener('change', () => {
   el.picker.value = '';  // let the same file be chosen again after a removal
 });
 
-/* ---------------- unlock & checkout ---------------- */
-
-async function unlockJob(jobId, btn) {
-  if (btn) btn.disabled = true;
-  try {
-    await api(`/api/jobs/${jobId}/unlock`, { method: 'POST' });
-    toast('Unlocked — the YouTube video is ready to download.');
-    refreshJobs();
-    refreshAccount();
-  } catch (e) {
-    if (e.status === 402) {
-      unlockJobId = jobId;
-      openPricing(e.message);
-    } else {
-      showError(e.message);
-    }
-    if (btn) btn.disabled = false;
-  }
-}
+/* ---------------- checkout ---------------- */
 
 async function openPricing(why) {
   el.pricingWhy.textContent = why ||
-    'The clean .mp4 for YouTube is the paid part. Everything else stays free.';
+    'In this tab a conversion is free, without limit. A credit converts a book on our GPU: minutes and not hours, from any device.';
   el.plans.innerHTML = '<p class="muted">Loading…</p>';
   if (!el.pricingDialog.open) el.pricingDialog.showModal();
 
@@ -830,7 +744,7 @@ async function checkout(planId, btn) {
     const { url } = await api('/api/billing/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan_id: planId, job_id: unlockJobId }),
+      body: JSON.stringify({ plan_id: planId }),
     });
     if (running) {
       // The finished job only exists in this tab. Pay in another one.
@@ -848,9 +762,8 @@ async function checkout(planId, btn) {
   }
 }
 
-el.pricingDialog.addEventListener('close', () => { unlockJobId = null; });
 el.buyBtn.addEventListener('click', () => openPricing(
-  'One credit is one book with every output, YouTube video included.'));
+  'One credit converts one book on our GPU: minutes and not hours, from any device.'));
 
 el.portalBtn.addEventListener('click', async () => {
   try {
@@ -922,15 +835,8 @@ async function handleArrival() {
   }
 }
 
-// Back from paying in the other tab: the purchase unlocked this job server-side.
-window.addEventListener('focus', async () => {
-  if (!running?.job.result || running.tier === 'youtube') return;
-  try {
-    const j = await api(`/api/jobs/${running.serverId}`);
-    if (j.tier === 'youtube') { running.tier = j.tier; renderResultButtons(); toast('Unlocked.'); }
-    refreshAccount();
-  } catch { /* try again on the next focus */ }
-});
+// Back from paying in the other tab.
+window.addEventListener('focus', () => { if (running?.job.result) refreshAccount().catch(() => {}); });
 
 /* ---------------- boot ---------------- */
 

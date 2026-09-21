@@ -292,37 +292,13 @@ button.dl:disabled { opacity: .6; cursor: progress; }
        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button.compact { padding: 6px 12px; font-size: 13px; }
 
-/* ---------- tiers ---------- */
+/* ---------- tags ---------- */
 .tag {
   font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
   text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
   vertical-align: 1px; white-space: nowrap;
 }
 .tag.free { background: var(--ok-soft); color: var(--ok); }
-.tag.paid { background: var(--accent-soft); color: var(--accent); }
-
-.tiers { border: 0; padding: 0; margin: 20px 0 0; display: grid; gap: 10px; }
-.tiers legend { padding: 0; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
-.tier {
-  display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
-  border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px;
-}
-.tier:hover { border-color: var(--muted); }
-.tier:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.tier input { margin-top: 4px; accent-color: var(--accent); }
-.tier-body { display: grid; gap: 3px; min-width: 0; }
-.tier-name { font-weight: 600; }
-.tier-desc { color: var(--muted); font-size: 13.5px; }
-.tier-note { font-size: 12.5px; color: var(--muted); }
-.tier-note.warn { color: var(--warn); }
-.tier-note:empty { display: none; }
-
-/* A download that exists but has not been paid for. */
-button.dl.locked {
-  background: transparent; color: var(--accent); border: 1px dashed var(--accent);
-}
-button.dl.locked:hover { background: var(--accent-soft); filter: none; }
-button.dl.locked:disabled { opacity: .55; cursor: progress; }
 
 /* ---------- dialogs ---------- */
 dialog.modal {

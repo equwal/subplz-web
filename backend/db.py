@@ -136,10 +136,10 @@ class Job(Base):
     stage: Mapped[str] = mapped_column(String(128), default="queued")
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # 1 while the job holds a slot in the free window.
+    # Not used from 2.2 on. It counted jobs in the free window of earlier versions.
     billed: Mapped[int] = mapped_column(Integer, default=0)
-    # "free": subtitles + the video with subtitles built in.
-    # "youtube": also the clean mp4. Paid for with a credit or a subscription.
+    # "free": the job ran in the visitor's browser. "cloud": it ran on this
+    # server and took a credit. (Rows from before 2.2 can say "youtube".)
     tier: Mapped[str] = mapped_column(
         String(16), default="free", server_default=text("'free'")
     )

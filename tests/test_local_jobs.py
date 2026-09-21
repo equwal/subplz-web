@@ -43,10 +43,13 @@ def test_free_job_runs_finishes_and_keeps_its_subtitles(client):
     assert job["id"] in {j["id"] for j in client.get("/api/jobs").json()}
 
 
-def test_free_window_applies_to_browser_jobs_too(client):
-    assert begin(client).status_code == 200
-    second = begin(client, audio_filename="another.m4b", audio_bytes=999)
-    assert second.status_code == 402
+def test_browser_jobs_have_no_limit_and_no_price(client):
+    buy(client, email="nolimit@example.com")
+    for n in range(4):
+        r = begin(client, audio_filename=f"book{n}.m4b", audio_bytes=1000 + n)
+        assert r.status_code == 200 and r.json()["tier"] == "free"
+    # The work was done on the visitor's machine: the credit is still there.
+    assert client.get("/api/account").json()["credits"] == 1
 
 
 def test_reopening_the_same_book_does_not_charge_twice(client):
@@ -57,28 +60,12 @@ def test_reopening_the_same_book_does_not_charge_twice(client):
         assert s.query(Job).filter(Job.account_id == account_id(client)).count() == 1
 
 
-def test_youtube_tier_costs_a_credit_and_a_failure_returns_it(client):
-    assert begin(client, tier="youtube").status_code == 402
-
-    buy(client)
-    r = begin(client, tier="youtube")
-    assert r.status_code == 200 and r.json()["tier"] == "youtube"
-    assert client.get("/api/account").json()["credits"] == 0
-
+def test_a_failed_browser_job_takes_nothing(client):
+    buy(client, email="failed@example.com")     # its own account: an email joins accounts across tests
+    r = begin(client)
     failed = client.post(f"/api/local/jobs/{r.json()['id']}/fail", json={"error": "GPU lost"})
     assert failed.status_code == 200 and failed.json()["status"] == "failed"
     assert client.get("/api/account").json()["credits"] == 1
-    # And the free book was never touched.
-    assert client.get("/api/account").json()["free_remaining"] == 1
-
-
-def test_upgrading_a_running_free_job_to_youtube(client):
-    job = begin(client).json()
-    assert begin(client, tier="youtube").status_code == 402     # no credit yet
-    buy(client, email="upgrade@example.com")
-    up = begin(client, tier="youtube")
-    assert up.status_code == 200 and up.json()["id"] == job["id"] and up.json()["tier"] == "youtube"
-    assert client.get("/api/account").json()["credits"] == 0
 
 
 def test_finish_is_once_only_and_owner_only(client, second_client):
@@ -101,14 +88,12 @@ def test_filename_cannot_escape_the_job_directory(client):
 
 def test_abandoned_jobs_release_what_they_held(client):
     job = begin(client).json()
-    assert begin(client, audio_filename="b.m4b", audio_bytes=2).status_code == 402
     with SessionLocal() as s:
         row = s.get(Job, job["id"])
         row.created_at = utcnow() - timedelta(hours=72)
         s.commit()
         assert api.expire_stale_local_jobs(s) >= 1
     assert get_job_row(job["id"]).status == JobStatus.canceled
-    assert begin(client, audio_filename="b.m4b", audio_bytes=2).status_code == 200
 
 
 def test_restart_does_not_queue_browser_jobs(client, monkeypatch):

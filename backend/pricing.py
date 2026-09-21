@@ -15,39 +15,38 @@ Market as of 2026:
     Kapwing/Descript  $24/mo
     Sonix             $10/hour pay-as-you-go
 
+  Raw forced alignment as an API
+    ElevenLabs        $0.22 per hour of audio: $2.20 for a 10-hour book
+
 The adjacent tools price per *minute of transcription*, which does not transfer:
-a 10-hour audiobook is 600 minutes, so it would cost ~$100 at Sonix's rate and
-need Happy Scribe's $89 tier. Forced alignment is much cheaper to run than
-transcription - the model is tiny and its output is thrown away, since the
-subtitle text comes from the user's own book.
+a 10-hour audiobook is 600 minutes, so it would cost ~$100 at Sonix's rate.
 
-So we price per book, cheap enough to be an impulse buy, and land the
-subscription just under the general subtitling tools.
+What is free and what is paid is split by where the work is done. In the
+visitor's browser a conversion costs this server nothing: it is free, without
+limit, with each output. On this server's hardware (a large speech model on a
+GPU: minutes and not hours, from any device) a book takes one credit. The code
+is public, so what is sold is the use of these machines and nothing else.
 
-What is free and what is paid is split by output, not by quality. The free tier
-is the complete product for someone reading along at home: the .srt for
-HoshiReader and an .mkv with the subtitles built in. What costs money is the
-clean .mp4 made for publishing on YouTube - the one output whose whole point is
-an audience, and so the one whose users can be asked to pay. A credit buys one
-book with every output, and skips the free tier's 24-hour wait.
+A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
+buyer wraps the ElevenLabs API; below $3 the fixed card fee takes too much.
+There is no unlimited plan: use comes in bursts (a backlog, then nothing), and
+one heavy user of an unlimited plan costs more than the plan brings in.
 
-  free              1 book / 24h, srt + mkv
-  single book       $3.49
-  5-book pack       $12.99   ($2.60/book)
-  20-book pack      $39.99   ($2.00/book)
-  unlimited month   $14.99   (under Otter/Happy Scribe, well under Veed/Kapwing)
+  free              in the browser: no limit, each output
+  single book       $4.99
+  5-book pack       $16.99   ($3.40/book)
+  20-book pack      $39.00   ($1.95/book)
 
 Every number is overridable by env var; these are defaults, not decisions cast
-in code.
+in code. An operator who wants a recurring plan can add one with
+SUBPLZ_WEB_PLANS_JSON ("recurring": true, "credits": null).
 """
-
 from __future__ import annotations
 
 import json
 import os
 from dataclasses import asdict, dataclass
 
-from .settings import settings
 
 
 @dataclass(frozen=True)
@@ -77,30 +76,22 @@ DEFAULT_PLANS: list[Plan] = [
         id="single",
         name="One book",
         credits=1,
-        price_cents=349,
-        blurb="One book with the YouTube video, no waiting.",
+        price_cents=499,
+        blurb="One book on our GPU: minutes, from any device.",
     ),
     Plan(
         id="pack5",
         name="5 books",
         credits=5,
-        price_cents=1299,
+        price_cents=1699,
         blurb="Credits never expire.",
     ),
     Plan(
         id="pack20",
         name="20 books",
         credits=20,
-        price_cents=3999,
+        price_cents=3900,
         blurb="For working through a series.",
-    ),
-    Plan(
-        id="unlimited",
-        name="Unlimited monthly",
-        credits=None,
-        price_cents=1499,
-        recurring=True,
-        blurb="Every book, YouTube video included. Cancel any time.",
     ),
 ]
 
@@ -131,14 +122,10 @@ def as_dicts() -> list[dict]:
 
 
 def free_tier_summary() -> str:
-    n = settings.free_conversions
-    hours = settings.free_window_hours
-    book = "book" if n == 1 else "books"
-    return f"{n} free {book} every {hours} hours"
+    return "free in your browser, without limit"
 
 
-# What each tier hands over, for the UI. Kinds match Artifact.kind.
-TIER_OUTPUTS = {
-    "free": ["srt", "video_embedded"],
-    "youtube": ["srt", "video_embedded", "video"],
-}
+# What each tier hands over, for the UI. Kinds match Artifact.kind. The tiers
+# differ in where the work is done, not in what comes out.
+_OUTPUTS = ["srt", "video_embedded", "video"]
+TIER_OUTPUTS = {"free": _OUTPUTS, "cloud": _OUTPUTS}

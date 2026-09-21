@@ -58,9 +58,12 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     # --- billing -----------------------------------------------------------
-    # The public offer: one free book per rolling 24 hours, pay for more.
-    free_conversions: int = 1
-    free_window_hours: int = 24
+    # The public offer: free in the visitor's browser; a conversion on this
+    # server's hardware takes a credit. See billing.py.
+    # True when fast conversion on this server's hardware is on offer. While it
+    # is false the site sells nothing, whatever billing_enabled says: credits
+    # that buy nothing must not be for sale.
+    cloud_enabled: bool = False
     # Off on localhost so nothing blocks you; flip on for the public release.
     billing_enabled: bool = False
 

@@ -124,8 +124,6 @@ class ArtifactOut(BaseModel):
     filename: str
     size_bytes: int
     url: str
-    # True when this file belongs to a tier the job has not paid for.
-    locked: bool = False
 
 
 class JobOut(BaseModel):
@@ -163,7 +161,6 @@ class UploadOut(BaseModel):
 class StartIn(BaseModel):
     language: str | None = None
     model: str | None = None
-    tier: Literal["free", "youtube"] = "free"
 
 
 class AccountOut(BaseModel):
@@ -174,19 +171,13 @@ class AccountOut(BaseModel):
     # Whether the server can actually take money / send sign-in email yet.
     payments_available: bool
     email_sign_in_available: bool
-    # Free tier.
-    free_allowance: int
-    free_window_hours: int
     free_tier_summary: str
-    free_remaining: int
-    free_allowed: bool
-    next_free_at: str | None
-    reason: str
-    # Paid tier.
+    # The cloud tier: conversions on this server's hardware.
+    cloud_available: bool
     credits: int
     subscribed: bool
     subscription_ends: str | None
-    youtube_allowed: bool
+    cloud_allowed: bool
     queue_depth: int
 
 
@@ -198,7 +189,6 @@ class LocalJobIn(BaseModel):
     audio_duration_seconds: float | None = None
     text_filename: str = Field(max_length=512)
     language: str = Field(max_length=16)
-    tier: Literal["free", "youtube"] = "free"
 
 
 class LocalFinishIn(BaseModel):
@@ -222,8 +212,6 @@ class TokenIn(BaseModel):
 
 class CheckoutIn(BaseModel):
     plan_id: str
-    # A finished free job to unlock with this purchase.
-    job_id: str | None = None
 
 
 def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
@@ -251,7 +239,6 @@ def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
             ArtifactOut(
                 kind=a.kind, filename=a.filename, size_bytes=a.size_bytes,
                 url=f"/api/jobs/{job.id}/files/{a.kind}",
-                locked=not billing.can_download(job, a.kind),
             )
             for a in arts
         ],
@@ -298,7 +285,7 @@ def get_account_info(
 
 
 def _account_out(session: Session, account: Account) -> AccountOut:
-    ent = billing.check(session, account)
+    ent = billing.check(account)
     return AccountOut(
         id=account.id,
         signed_in=account.signed_in,
@@ -306,19 +293,14 @@ def _account_out(session: Session, account: Account) -> AccountOut:
         billing_enabled=settings.billing_enabled,
         payments_available=settings.payments_configured,
         email_sign_in_available=settings.sign_in_available,
-        free_allowance=ent.free_allowance,
-        free_window_hours=ent.window_hours,
         free_tier_summary=pricing.free_tier_summary(),
-        free_remaining=ent.free_remaining,
-        free_allowed=ent.free_allowed,
-        next_free_at=ent.next_free_at.isoformat() if ent.next_free_at else None,
-        reason=ent.reason,
         credits=ent.credits,
         subscribed=ent.subscribed,
         subscription_ends=(
             ent.subscription_ends.isoformat() if ent.subscription_ends else None
         ),
-        youtube_allowed=ent.youtube_allowed or not settings.billing_enabled,
+        cloud_available=settings.cloud_enabled,
+        cloud_allowed=ent.cloud_allowed or not settings.billing_enabled,
         queue_depth=queue.depth(),
     )
 
@@ -411,10 +393,8 @@ def create_checkout(
     plan = pricing.get(body.plan_id)
     if plan is None:
         raise HTTPException(404, "No such plan.")
-    if body.job_id:
-        _load(session, account, body.job_id)  # 404s on someone else's job
     try:
-        url = payments.start_checkout(session, account, plan, body.job_id)
+        url = payments.start_checkout(session, account, plan)
     except payments.PaymentsUnavailable as exc:
         raise HTTPException(503, str(exc)) from exc
     except payments.PaymentError as exc:
@@ -645,7 +625,7 @@ def start_job(
         job.model = body.model
 
     try:
-        billing.authorize_start(session, account, job, body.tier)
+        billing.authorize_start(session, account, job)
     except billing.PaymentRequired as exc:
         session.rollback()
         raise HTTPException(402, str(exc)) from exc
@@ -702,12 +682,6 @@ def start_local_job(
         .first()
     )
     if running is not None:
-        if body.tier == billing.YOUTUBE and running.tier != billing.YOUTUBE:
-            try:
-                billing.unlock(session, account, running)
-            except billing.PaymentRequired as exc:
-                session.rollback()
-                raise HTTPException(402, str(exc)) from exc
         running.language = body.language
         session.commit()
         return _job_out(running, [])
@@ -722,7 +696,7 @@ def start_local_job(
     )
     session.add(job)
     try:
-        billing.authorize_start(session, account, job, body.tier)
+        billing.authorize_start(session, account, job)
     except billing.PaymentRequired as exc:
         session.rollback()
         raise HTTPException(402, str(exc)) from exc
@@ -864,23 +838,6 @@ def cancel_job(
     return _job_out(job, [])
 
 
-@router.post("/jobs/{job_id}/unlock", response_model=JobOut)
-def unlock_job(
-    job_id: str,
-    account: Annotated[Account, Depends(get_account)],
-    session: Annotated[Session, Depends(get_session)],
-):
-    """Upgrade a free job to the YouTube tier, spending a credit."""
-    job = _load(session, account, job_id)
-    try:
-        billing.unlock(session, account, job)
-    except billing.PaymentRequired as exc:
-        session.rollback()
-        raise HTTPException(402, str(exc)) from exc
-    session.commit()
-    return _job_out(job, _artifacts(session, job.id))
-
-
 @router.delete("/jobs/{job_id}")
 def delete_job(
     job_id: str,
@@ -905,11 +862,6 @@ def download(
     session: Annotated[Session, Depends(get_session)],
 ):
     job = _load(session, account, job_id)
-    if not billing.can_download(job, kind):
-        raise HTTPException(
-            402, "The YouTube video is part of the paid tier. Unlock it with "
-                 "a credit, or the unlimited plan."
-        )
     art = (
         session.query(Artifact)
         .filter(Artifact.job_id == job.id, Artifact.kind == kind)

@@ -27,7 +27,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from . import accounts, billing, pricing
-from .db import Account, Job, Purchase
+from .db import Account, Purchase
 from .settings import settings
 
 log = logging.getLogger(__name__)
@@ -67,18 +67,12 @@ def _base() -> str:
 # checkout
 # ---------------------------------------------------------------------------
 
-def start_checkout(
-    session: Session, account: Account, plan: pricing.Plan, job_id: str | None = None
-) -> str:
-    """Return the Stripe-hosted payment page for `plan`.
-
-    `job_id` names a finished free job to unlock as soon as the money lands,
-    so "pay to get this video" is one trip rather than two.
-    """
+def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> str:
+    """Return the Stripe-hosted payment page for `plan`."""
     stripe = _stripe()
 
     if plan.recurring and billing.is_subscribed(account):
-        raise PaymentError("You are already on the unlimited plan.")
+        raise PaymentError("You are already on this plan.")
 
     price = {
         "currency": plan.currency,
@@ -88,7 +82,7 @@ def start_checkout(
     if plan.recurring:
         price["recurring"] = {"interval": "month"}
 
-    meta = {"account_id": account.id, "plan_id": plan.id, "job_id": job_id or ""}
+    meta = {"account_id": account.id, "plan_id": plan.id}
     params: dict = {
         "mode": "subscription" if plan.recurring else "payment",
         "line_items": [{"quantity": 1, "price_data": price}],
@@ -234,15 +228,6 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
         except Exception as exc:  # noqa: BLE001 - the subscription webhook will land too
             log.warning("could not read subscription %s: %s",
                         checkout["subscription"], exc)
-
-    # The purchase was made to get a particular video: hand it over.
-    job = session.get(Job, meta.get("job_id")) if meta.get("job_id") else None
-    if job is not None and job.account_id == account.id:
-        try:
-            billing.unlock(session, account, job)
-            session.commit()
-        except billing.PaymentRequired:
-            session.rollback()
 
     log.info("fulfilled %s: plan=%s account=%s", checkout["id"], plan.id, account.id)
     return account

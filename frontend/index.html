@@ -43,9 +43,9 @@
       <li><strong>Local video</strong> — an .mkv with the subtitles built in, for
         MPV or VLC. <span class="tag free">free</span></li>
       <li><strong>YouTube video</strong> — a clean .mp4, plus the .srt to upload as
-        its captions. <span class="tag paid" id="paid-tag">paid</span></li>
+        its captions. <span class="tag free">free</span></li>
     </ul>
-    <p class="muted small" id="freetier">One free book every 24 hours.</p>
+    <p class="muted small" id="freetier">Free in your browser, without limit.</p>
   </section>
 
   <!-- step 1: drop -->
@@ -133,28 +133,6 @@
       </div>
       <ul id="match-warnings" class="match-warnings"></ul>
     </div>
-
-    <fieldset id="tiers" class="tiers" hidden>
-      <legend>What do you need?</legend>
-      <label class="tier">
-        <input type="radio" name="tier" value="free" checked>
-        <span class="tier-body">
-          <span class="tier-name">Read-along <span class="tag free">free</span></span>
-          <span class="tier-desc">Subtitles (.srt) for HoshiReader, and a video
-            with the subtitles built in (.mkv) for MPV or VLC.</span>
-          <span class="tier-note warn" id="free-note"></span>
-        </span>
-      </label>
-      <label class="tier">
-        <input type="radio" name="tier" value="youtube">
-        <span class="tier-body">
-          <span class="tier-name">YouTube <span class="tag paid" id="yt-cost">1 credit</span></span>
-          <span class="tier-desc">Everything above, plus a clean .mp4 made for
-            uploading to YouTube. Starts right away — no 24-hour wait.</span>
-          <span class="tier-note" id="yt-note"></span>
-        </span>
-      </label>
-    </fieldset>
 
     <div class="actions">
       <button id="start" class="primary">Start alignment</button>

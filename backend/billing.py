@@ -1,43 +1,36 @@
 """Entitlement: what an account may do right now.
 
-Two tiers, split by what you walk away with:
+The line between free and paid is where the work is done, not what comes out:
 
-  free      The subtitles (.srt, for HoshiReader) and the video with the
-            subtitles built in (.mkv, for MPV/VLC). One book per rolling
-            24 hours.
-  youtube   All of that plus the clean .mp4 made for uploading to YouTube.
-            Costs one credit, or nothing on the unlimited plan, and starts
-            right away - paying customers do not queue behind the free window.
+  free    The job runs in the visitor's browser, on the visitor's machine. It
+          costs this server nothing, so it has no price and no limit, and it
+          gives each output: subtitles, videos, the read-along book.
+  cloud   The job runs on this server's hardware: a large speech model on a
+          GPU, minutes and not hours, from any device. One credit for a book,
+          or nothing on a recurring plan if the operator sells one.
+
+All of the code is public and anyone may host it. What is sold is the use of
+this operator's machines.
 
 Disabled on localhost (SUBPLZ_WEB_BILLING_ENABLED=false) so nothing gets in the
-way while you use it yourself. The accounting still runs either way, so turning
-billing on for the public release does not need a backfill.
-
-The window is rolling, not a calendar day: the allowance comes back 24 hours
-after the run that used it, which avoids a midnight stampede and is easier to
-explain than "resets at 00:00 in some timezone".
+way while you use it yourself.
 
 Taking the money lives in payments.py; this file only decides who may do what.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, update
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from .db import Account, Job, JobStatus, SessionLocal, utcnow
+from .db import Account, Job, SessionLocal, utcnow
 from .settings import settings
 
 FREE = "free"
-YOUTUBE = "youtube"
-TIERS = (FREE, YOUTUBE)
-
-# Jobs in these states hold a slot in the free window. A failed or cancelled
-# run releases it: charging for our own failure is not a business model.
-_HOLDING = [JobStatus.queued, JobStatus.running, JobStatus.succeeded]
+CLOUD = "cloud"
+TIERS = (FREE, CLOUD)
 
 # Stripe keeps retrying a failed renewal for a while; do not lock someone out
 # the second their card hiccups.
@@ -57,23 +50,12 @@ def _aware(when: datetime | None) -> datetime | None:
 
 @dataclass(frozen=True)
 class Entitlement:
-    # Free tier.
-    free_allowed: bool
-    free_used: int
-    free_allowance: int
-    free_remaining: int
-    window_hours: int
-    # When the next free conversion becomes available, if the window is full.
-    next_free_at: datetime | None
-    # Paid tier.
     credits: int
     subscribed: bool
     subscription_ends: datetime | None
-    # Why a free start is blocked, ready to show.
-    reason: str = ""
 
     @property
-    def youtube_allowed(self) -> bool:
+    def cloud_allowed(self) -> bool:
         return self.subscribed or self.credits > 0
 
 
@@ -84,61 +66,11 @@ def is_subscribed(account: Account) -> bool:
     return ends is None or ends + _GRACE > utcnow()
 
 
-def _window_start() -> datetime:
-    return utcnow() - timedelta(hours=settings.free_window_hours)
-
-
-def _window_filter(account_id: str):
-    return (
-        Job.account_id == account_id,
-        Job.billed == 1,
-        Job.status.in_(_HOLDING),
-        Job.created_at >= _window_start(),
-    )
-
-
-def check(session: Session, account: Account) -> Entitlement:
-    used = (
-        session.query(func.count(Job.id)).filter(*_window_filter(account.id)).scalar()
-        or 0
-    )
-    free = settings.free_conversions
-    window = settings.free_window_hours
-    subscribed = is_subscribed(account)
-    remaining = max(0, free - used)
-
-    def build(allowed: bool, reason: str = "", when: datetime | None = None):
-        return Entitlement(
-            free_allowed=allowed, free_used=used, free_allowance=free,
-            free_remaining=remaining, window_hours=window, next_free_at=when,
-            credits=account.purchased_credits, subscribed=subscribed,
-            subscription_ends=_aware(account.subscription_period_end),
-            reason=reason,
-        )
-
-    if not settings.billing_enabled or subscribed or remaining > 0:
-        return build(True)
-
-    # The earliest job still inside the window decides when a slot frees up.
-    oldest = _aware(
-        session.query(func.min(Job.created_at))
-        .filter(*_window_filter(account.id))
-        .scalar()
-    )
-    when = oldest + timedelta(hours=window) if oldest else None
-    book = "book" if free == 1 else "books"
-    return build(
-        False,
-        reason=(
-            f"The free tier is {free} {book} every {window} hours. "
-            + (
-                f"Your next one unlocks at {when:%H:%M UTC on %d %b}. "
-                if when
-                else ""
-            )
-            + "A credit converts a book right now, YouTube video included."
-        ),
-        when=when,
+def check(account: Account) -> Entitlement:
+    return Entitlement(
+        credits=account.purchased_credits,
+        subscribed=is_subscribed(account),
+        subscription_ends=_aware(account.subscription_period_end),
     )
 
 
@@ -153,58 +85,22 @@ def _spend_credit(session: Session, account: Account) -> bool:
     return bool(taken)
 
 
-def authorize_start(session: Session, account: Account, job: Job, tier: str) -> None:
-    """Charge whatever starting `job` on `tier` costs, or raise PaymentRequired."""
-    if tier not in TIERS:
-        raise ValueError(f"unknown tier {tier!r}")
+def authorize_start(session: Session, account: Account, job: Job) -> None:
+    """Charge what starting `job` costs, or raise PaymentRequired.
 
-    job.tier, job.billed, job.credit_spent = tier, 0, 0
-
-    if not settings.billing_enabled:
-        job.billed = 1  # accounting only; nothing is ever refused
-        return
-
-    if is_subscribed(account):
-        return
-
-    if tier == YOUTUBE:
-        if not _spend_credit(session, account):
-            raise PaymentRequired(
-                "The YouTube video is a paid extra: one credit per book, "
-                "or the unlimited plan."
-            )
-        job.credit_spent = 1
-        return
-
-    ent = check(session, account)
-    if not ent.free_allowed:
-        raise PaymentRequired(ent.reason)
-    job.billed = 1
-
-
-def unlock(session: Session, account: Account, job: Job) -> None:
-    """Upgrade a free job to the YouTube tier after the fact.
-
-    The mp4 already exists - the mkv is made from it - so this is only ever a
-    permission change, never a second run.
+    Where the job runs sets its tier: a browser job is free, a server job is
+    a cloud job.
     """
-    if job.tier == YOUTUBE or not settings.billing_enabled:
-        job.tier = YOUTUBE
+    job.tier = FREE if job.local else CLOUD
+    job.billed, job.credit_spent = 0, 0
+    if job.local or not settings.billing_enabled or is_subscribed(account):
         return
-    if not is_subscribed(account):
-        if not _spend_credit(session, account):
-            raise PaymentRequired(
-                "Unlocking the YouTube video takes one credit, "
-                "or the unlimited plan."
-            )
-        job.credit_spent = 1
-    job.tier = YOUTUBE
-
-
-def can_download(job: Job, kind: str) -> bool:
-    if kind != "video" or not settings.billing_enabled:
-        return True
-    return job.tier == YOUTUBE
+    if not _spend_credit(session, account):
+        raise PaymentRequired(
+            "A conversion on our servers takes one credit. "
+            "In your browser it is free, without limit."
+        )
+    job.credit_spent = 1
 
 
 def refund(session: Session, job: Job) -> None:
@@ -217,9 +113,6 @@ def refund(session: Session, job: Job) -> None:
             .values(purchased_credits=Account.purchased_credits + 1)
         )
         job.credit_spent = 0
-        # Back to free, so a retry is priced again rather than riding on a
-        # credit that has just been returned.
-        job.tier = FREE
     session.add(job)
 
 

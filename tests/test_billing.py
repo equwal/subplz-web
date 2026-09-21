@@ -1,16 +1,19 @@
 """Tiers, credits, Stripe fulfilment. The rules under test:
 
-  free     srt + mkv, one book per window
-  youtube  + the clean mp4; one credit, or the unlimited plan
+  free   a job in the visitor's browser: no price, no limit, each output
+  cloud  a job on this server: one credit (or a recurring plan, if one is sold)
 """
 
 from __future__ import annotations
 
+import json
 import time
+from dataclasses import asdict
 
+import pytest
 import stripe
 
-from backend import billing, runner
+from backend import pricing, runner
 from backend.db import JobStatus
 
 from .conftest import (
@@ -19,8 +22,17 @@ from .conftest import (
 )
 
 
-def start(client, job_id, tier="free"):
-    return client.post(f"/api/jobs/{job_id}/start", json={"language": "en", "tier": tier})
+def start(client, job_id):
+    """Start a job on the server: a cloud job."""
+    return client.post(f"/api/jobs/{job_id}/start", json={"language": "en"})
+
+
+@pytest.fixture
+def monthly_plan(monkeypatch):
+    """The default catalogue sells no recurring plan. An operator can add one."""
+    plans = [asdict(p) for p in pricing.DEFAULT_PLANS]
+    plans.append({"id": "monthly", "name": "Monthly", "credits": None, "price_cents": 1500, "recurring": True})
+    monkeypatch.setenv("SUBPLZ_WEB_PLANS_JSON", json.dumps(plans))
 
 
 def buy(client, plan="pack5", session_id=None, **kw):
@@ -30,53 +42,38 @@ def buy(client, plan="pack5", session_id=None, **kw):
     return session_id
 
 
-# --- free tier ---------------------------------------------------------------
+# --- the cloud tier ----------------------------------------------------------
 
-def test_new_visitor_is_anonymous_with_a_free_book(client):
+def test_new_visitor_is_anonymous_and_has_no_credits(client):
     a = client.get("/api/account").json()
     assert a["signed_in"] is False and a["email"] is None
-    assert a["free_allowed"] is True and a["free_remaining"] == 1
     assert a["credits"] == 0 and a["subscribed"] is False
-    assert a["youtube_allowed"] is False
+    assert a["cloud_allowed"] is False
+    assert "free in your browser" in a["free_tier_summary"]
 
 
-def test_free_window_allows_one_book_then_asks_for_payment(client):
-    assert start(client, make_job(client)).status_code == 200
+def test_nothing_is_for_sale_until_the_cloud_is_connected(client, monkeypatch):
+    """Billing can be on while fast conversion is not yet on offer. The page
+    reads this flag, and shows no way to buy credits that would buy nothing."""
+    from backend.settings import settings
+    assert client.get("/api/account").json()["cloud_available"] is False
+    monkeypatch.setattr(settings, "cloud_enabled", True)
+    assert client.get("/api/account").json()["cloud_available"] is True
 
+
+def test_a_server_job_needs_a_credit(client):
     r = start(client, make_job(client))
     assert r.status_code == 402
-    assert "every 24 hours" in r.json()["detail"]
-
-    a = client.get("/api/account").json()
-    assert a["free_allowed"] is False and a["next_free_at"]
+    assert "one credit" in r.json()["detail"] and "free" in r.json()["detail"]
 
 
-def test_failed_job_gives_the_free_slot_back(client):
-    job_id = make_job(client)
-    assert start(client, job_id).status_code == 200
-    # No staged inputs, so the real runner fails it - which is the point.
-    runner.run_job(job_id)
-    assert get_job_row(job_id).status == JobStatus.failed
-    assert start(client, make_job(client)).status_code == 200
-
-
-def test_free_job_locks_only_the_youtube_video(client):
+def test_each_output_of_a_job_can_be_downloaded(client):
     job_id = make_job(client, JobStatus.succeeded, with_files=True)
-    arts = {a["kind"]: a for a in client.get(f"/api/jobs/{job_id}").json()["artifacts"]}
-    assert arts["video"]["locked"] is True
-    assert arts["srt"]["locked"] is False
-    assert arts["video_embedded"]["locked"] is False
-
-    assert client.get(f"/api/jobs/{job_id}/files/srt").status_code == 200
-    assert client.get(f"/api/jobs/{job_id}/files/video_embedded").status_code == 200
-    assert client.get(f"/api/jobs/{job_id}/files/video").status_code == 402
-
-
-def test_youtube_tier_needs_payment(client):
-    r = start(client, make_job(client), tier="youtube")
-    assert r.status_code == 402
-    # Refused, so nothing was taken and the free book is still there.
-    assert client.get("/api/account").json()["free_remaining"] == 1
+    arts = client.get(f"/api/jobs/{job_id}").json()["artifacts"]
+    assert {a["kind"] for a in arts} >= {"srt", "video", "video_embedded"}
+    assert all("locked" not in a for a in arts)
+    for kind in ("srt", "video_embedded", "video"):
+        assert client.get(f"/api/jobs/{job_id}/files/{kind}").status_code == 200
 
 
 # --- credits -----------------------------------------------------------------
@@ -86,7 +83,7 @@ def test_purchase_credits_the_account_and_signs_it_in(client):
     a = client.get("/api/account").json()
     assert a["credits"] == 5
     assert a["signed_in"] is True and a["email"] == "reader@example.com"
-    assert a["youtube_allowed"] is True
+    assert a["cloud_allowed"] is True
 
 
 def test_webhook_redelivery_does_not_credit_twice(client):
@@ -106,76 +103,42 @@ def test_webhook_rejects_a_bad_signature(client):
     assert client.get("/api/account").json()["credits"] == 0
 
 
-def test_youtube_job_spends_a_credit_and_skips_the_free_window(client):
-    buy(client, "single", email="yt@example.com")
-    # Use up the free book first: a credit must not care.
-    assert start(client, make_job(client)).status_code == 200
-
+def test_a_server_job_spends_a_credit(client):
+    buy(client, "single", email="cloud@example.com")
     job_id = make_job(client, with_files=True)
-    assert start(client, job_id, tier="youtube").status_code == 200
+    assert start(client, job_id).status_code == 200
     assert client.get("/api/account").json()["credits"] == 0
-
-    job = client.get(f"/api/jobs/{job_id}").json()
-    assert job["tier"] == "youtube"
-    assert all(not a["locked"] for a in job["artifacts"])
-    assert client.get(f"/api/jobs/{job_id}/files/video").status_code == 200
+    assert client.get(f"/api/jobs/{job_id}").json()["tier"] == "cloud"
+    assert get_job_row(job_id).credit_spent == 1
 
     # And with the credit gone, the next one is refused again.
-    assert start(client, make_job(client), tier="youtube").status_code == 402
+    assert start(client, make_job(client)).status_code == 402
 
 
-def test_failed_youtube_job_returns_the_credit(client):
+def test_failed_server_job_returns_the_credit(client):
     buy(client, "single", email="refund@example.com")
     job_id = make_job(client)
-    assert start(client, job_id, tier="youtube").status_code == 200
+    assert start(client, job_id).status_code == 200
     assert client.get("/api/account").json()["credits"] == 0
 
     runner.run_job(job_id)  # fails: nothing was staged
 
     assert client.get("/api/account").json()["credits"] == 1
-    job = get_job_row(job_id)
-    assert job.credit_spent == 0 and job.tier == billing.FREE
+    assert get_job_row(job_id).credit_spent == 0
 
 
-def test_cancelled_youtube_job_returns_the_credit(client):
+def test_cancelled_server_job_returns_the_credit(client):
     buy(client, "single", email="cancel@example.com")
     job_id = make_job(client)
-    assert start(client, job_id, tier="youtube").status_code == 200
+    assert start(client, job_id).status_code == 200
     assert client.post(f"/api/jobs/{job_id}/cancel").status_code == 200
     assert client.get("/api/account").json()["credits"] == 1
 
 
-def test_unlock_a_finished_free_job(client):
-    job_id = make_job(client, JobStatus.succeeded, with_files=True)
-    assert client.post(f"/api/jobs/{job_id}/unlock").status_code == 402
-
-    buy(client, "single", email="unlock@example.com")
-    r = client.post(f"/api/jobs/{job_id}/unlock")
-    assert r.status_code == 200 and r.json()["tier"] == "youtube"
-    assert client.get("/api/account").json()["credits"] == 0
-    assert client.get(f"/api/jobs/{job_id}/files/video").status_code == 200
-
-    # Unlocking twice must not charge twice.
-    buy(client, "single", email="unlock@example.com")
-    assert client.post(f"/api/jobs/{job_id}/unlock").status_code == 200
-    assert client.get("/api/account").json()["credits"] == 1
-
-
-def test_purchase_made_for_a_job_unlocks_it(client):
-    job_id = make_job(client, JobStatus.succeeded, with_files=True)
-    buy(client, "single", email="forjob@example.com", job_id=job_id)
-    assert get_job_row(job_id).tier == "youtube"
-    # The one credit bought was the one spent.
-    assert client.get("/api/account").json()["credits"] == 0
-
-
 def test_cannot_touch_someone_elses_job(client, second_client):
     job_id = make_job(client, JobStatus.succeeded, with_files=True)
-    assert second_client.post(f"/api/jobs/{job_id}/unlock").status_code == 404
     assert second_client.get(f"/api/jobs/{job_id}/files/srt").status_code == 404
-    r = second_client.post("/api/billing/checkout",
-                           json={"plan_id": "single", "job_id": job_id})
-    assert r.status_code == 404
+    assert second_client.post(f"/api/jobs/{job_id}/cancel").status_code == 404
 
 
 # --- checkout ----------------------------------------------------------------
@@ -195,21 +158,28 @@ def test_checkout_sends_stripe_the_right_order(client, monkeypatch):
     assert seen["client_reference_id"] == account_id(client)
     assert seen["metadata"]["plan_id"] == "pack5"
     item = seen["line_items"][0]["price_data"]
-    assert item["unit_amount"] == 1299 and item["currency"] == "usd"
+    assert item["unit_amount"] == 1699 and item["currency"] == "usd"
     assert "recurring" not in item
     assert seen["success_url"].startswith(
         "https://example.test/api/billing/return?session_id={CHECKOUT_SESSION_ID}")
     assert seen["customer_creation"] == "always"
 
 
-def test_subscription_checkout_is_recurring(client, monkeypatch):
+def test_no_unlimited_plan_is_sold_by_default(client):
+    plans = client.get("/api/pricing").json()["plans"]
+    assert [p["id"] for p in plans] == ["single", "pack5", "pack20"]
+    assert [p["price_cents"] for p in plans] == [499, 1699, 3900]
+    assert not any(p["recurring"] for p in plans)
+
+
+def test_subscription_checkout_is_recurring(client, monkeypatch, monthly_plan):
     seen = {}
     monkeypatch.setattr(
         stripe.checkout.Session, "create",
         lambda **p: seen.update(p) or FakeStripeObject({"url": "https://stripe.test/sub"}),
     )
     assert client.post("/api/billing/checkout",
-                       json={"plan_id": "unlimited"}).status_code == 200
+                       json={"plan_id": "monthly"}).status_code == 200
     assert seen["mode"] == "subscription"
     assert seen["line_items"][0]["price_data"]["recurring"] == {"interval": "month"}
     assert seen["subscription_data"]["metadata"]["account_id"] == account_id(client)
@@ -266,20 +236,19 @@ def test_subscription_lifts_every_limit_then_lapses(client):
     assert post_webhook(client, subscription_event("created", acct, "active")).status_code == 200
 
     a = client.get("/api/account").json()
-    assert a["subscribed"] is True and a["youtube_allowed"] is True
+    assert a["subscribed"] is True and a["cloud_allowed"] is True
     assert a["subscription_ends"]
 
-    # No window, no credits spent, mp4 unlocked.
+    # Server jobs start, and no credits are spent.
     for _ in range(3):
         job_id = make_job(client, with_files=True)
-        assert start(client, job_id, tier="youtube").status_code == 200
+        assert start(client, job_id).status_code == 200
     assert get_job_row(job_id).credit_spent == 0
-    assert client.get(f"/api/jobs/{job_id}/files/video").status_code == 200
 
     post_webhook(client, subscription_event("deleted", acct, "canceled"))
     a = client.get("/api/account").json()
     assert a["subscribed"] is False
-    assert start(client, make_job(client), tier="youtube").status_code == 402
+    assert start(client, make_job(client)).status_code == 402
 
 
 def test_subscription_past_its_paid_period_does_not_count(client):
@@ -288,11 +257,11 @@ def test_subscription_past_its_paid_period_does_not_count(client):
     assert client.get("/api/account").json()["subscribed"] is False
 
 
-def test_cannot_subscribe_twice(client, monkeypatch):
+def test_cannot_subscribe_twice(client, monkeypatch, monthly_plan):
     post_webhook(client, subscription_event("created", account_id(client), "active"))
     monkeypatch.setattr(stripe.checkout.Session, "create",
                         lambda **p: FakeStripeObject({"url": "x"}))
-    r = client.post("/api/billing/checkout", json={"plan_id": "unlimited"})
+    r = client.post("/api/billing/checkout", json={"plan_id": "monthly"})
     assert r.status_code == 400 and "already" in r.json()["detail"]
 
 
@@ -306,14 +275,13 @@ def test_paying_on_a_new_device_joins_the_existing_account(client, second_client
     job_id = make_job(second_client, JobStatus.succeeded, with_files=True)
     device = account_id(second_client)
     assert device != original
-    buy(second_client, "single", email="same@example.com", job_id=job_id)
+    buy(second_client, "single", email="same@example.com")
 
     # Its cookie now resolves to the original account, which holds everything.
     a = second_client.get("/api/account").json()
     assert a["id"] == original and a["email"] == "same@example.com"
-    assert a["credits"] == 5  # 5 + 1 bought - 1 spent unlocking the job
+    assert a["credits"] == 6
     assert get_job_row(job_id).account_id == original
-    assert get_job_row(job_id).tier == "youtube"
     assert get_account_row(device).merged_into == original
     # ...and both browsers see the same jobs.
     assert job_id in {j["id"] for j in client.get("/api/jobs").json()}
