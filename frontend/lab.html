@@ -78,6 +78,12 @@ window.fullJob = async () => {
     log(`job done in ${((performance.now() - t) / 1000).toFixed(1)}s on ${job.device}: ${r.cues.length} cues, ` +
         `${(r.matchRate * 100).toFixed(0)}% matched, ${r.paragraphsDropped}/${r.paragraphsDropped + r.paragraphsUsed} paragraphs dropped`);
     log(r.srt.split('\n').slice(0, 16).join('\n'));
+    t = performance.now();
+    const made = await job.epub();
+    log(`epub: ${made.file.name} ${(made.file.size / 1e6).toFixed(2)} MB, ${made.located} of ${made.of} lines placed, in ${((performance.now() - t) / 1000).toFixed(1)}s`);
+    window.lab.results.epub = made.file;
+    const again = await readBook(made.file);
+    log(`epub reads back: ${again.paragraphs.length} paragraphs, same text: ${JSON.stringify(again.paragraphs) === JSON.stringify(parsed.paragraphs)}`);
     for (const kind of ['mkv', 'mp4']) {
       t = performance.now();
       const file = await job.video(kind);

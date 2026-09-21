@@ -495,12 +495,29 @@ function renderResultButtons() {
   };
   button('⬇ Subtitles (.srt)', 'For Hoshi Reader, or to upload alongside the YouTube video', '',
     () => save(new File([r.srt], r.srtName, { type: 'application/x-subrip' })));
+  if (/\.epub$/i.test(running.job.bookFile.name)) {
+    button('⬇ Read-along book (.epub)', 'The book with the narration inside: Thorium, Storyteller and other EPUB 3 readers highlight each line as it is read', '',
+      (b) => makeEpub(b));
+  }
   button('⬇ Video with subs built in (.mkv)', 'Subtitles inside the file, for MPV or VLC', '',
     (b) => makeVideo('mkv', b));
   button(paid ? '⬇ Video for YouTube (.mp4)' : '🔒 Unlock the YouTube video (.mp4)',
     paid ? 'No subtitles baked in — add the .srt in YouTube Studio'
       : 'Part of the YouTube tier — one credit, or the unlimited plan',
     paid ? '' : 'locked', (b) => (paid ? makeVideo('mp4', b) : unlockRunning(b)));
+}
+
+async function makeEpub(btn) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Making the read-along book…';
+  try {
+    const { file, located, of } = await running.job.epub();
+    save(file);
+    if (located < of) toast(`${of - located} of ${of} lines could not be placed in the book's pages; the rest are in.`);
+  } catch (e) { showError(`Could not make the read-along book: ${e.message}`); }
+  btn.textContent = label;
+  btn.disabled = false;
 }
 
 async function makeVideo(kind, btn) {

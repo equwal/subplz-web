@@ -247,6 +247,17 @@ drop corrupt frames instead of letting a single bad chapter abort the whole run.
 | `metadata.json` | language, model, splitter, cue count, timing span |
 | `subplz.log` | the full run log — the only way to debug a bad alignment |
 
+A job that runs in the browser tab can also make `<name>.read-along.epub`: the
+epub with the narration inside it, as EPUB 3 Media Overlays
+(`frontend/engine/epub.js`). Thorium, Storyteller and other EPUB 3 readers play
+it and highlight each line. The cues do not say where in the pages their words
+are, so the engine finds each cue's words again in the text of the pages, in
+order, and puts a `<span id>` around them. An EPUB 2 book becomes EPUB 3 (a
+navigation document is made from the NCX). The audio must be MP3 or AAC in
+m4a/m4b, which are the types an EPUB 3 reader must play. `tests/engine/epub.test.mjs`
+follows each overlay as a reader does, and gives the result to the W3C
+`epubcheck` when `EPUBCHECK` points to its jar.
+
 Uploaded media is deleted once a job succeeds. A **failed** job keeps its inputs
 so you can fix the language and retry without re-uploading.
 

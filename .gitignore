@@ -27,3 +27,7 @@ tests/engine/golden-local/
 
 # Browser-side libraries; tools/fetch_vendor.py downloads them, pinned
 frontend/vendor/
+tests/engine/excerpt-local/
+
+# Test tooling for the browser engine
+node_modules/

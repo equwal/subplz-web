@@ -10,6 +10,7 @@
  * the same files again carries on from the last chunk, and aligning the same
  * audio against a different edition of the book costs seconds.
  */
+import { syncedEpub } from './epub.js';
 import { Media, quietestPoint, SAMPLE_RATE } from './media.js';
 import { Recogniser } from './asr.js';
 import { readBook } from './book.js';
@@ -188,6 +189,22 @@ export class Job {
     } finally {
       for (const f of [out, 'still.mp4', 'canvas.png', 'subs.srt', 'parts.txt']) await m.remove(f);
     }
+  }
+
+  /**
+   * The book with the narration inside it (EPUB 3 Media Overlays): a reader
+   * such as Thorium or Storyteller plays it and highlights each line.
+   */
+  async epub() {
+    const r = this.result;
+    if (!/\.epub$/i.test(this.bookFile.name)) throw new Error('A read-along book is made from an epub; this book is not one.');
+    const parts = r.parts.map((p, i) => {
+      const file = this.audio[i];
+      // AAC counts only inside an MP4 file; a bare .aac stream is not audio an epub may hold.
+      const codec = p.codec === 'aac' && !/\.(m4a|m4b|mp4)$/i.test(file.name) ? 'aac (not in an m4a file)' : p.codec;
+      return { file, duration: p.duration, codec };
+    });
+    return syncedEpub({ book: this.bookFile, cues: r.cues, parts, stem: r.stem });
   }
 
   close() { this.#media?.close(); }

@@ -59,7 +59,7 @@ async function firstEntry(bytes, pattern) {
 }
 
 /** UTF-8 unless it plainly is not; then whatever the file declares, or Shift_JIS. */
-function decode(bytes) {
+export function decode(bytes) {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^﻿/, '');
   } catch { /* not UTF-8 */ }
@@ -74,7 +74,7 @@ function decode(bytes) {
 
 /* ---------------------------------------------------------------------- epub */
 
-function resolve(base, href) {
+export function resolve(base, href) {
   const parts = base ? base.split('/') : [];
   for (const seg of href.split('/')) {
     if (seg === '' || seg === '.') continue;
@@ -88,7 +88,18 @@ function resolve(base, href) {
  * a self-closing <title/> never closes, and swallows the whole book as its text.
  * Plenty of epubs are not well-formed, though, so HTML is the fallback.
  */
-function page(source) {
+/**
+ * The blocks of text of a page, in reading order. A quote holding paragraphs
+ * would yield its text twice, so only the leaves count. The sort is for DOM
+ * implementations that give the matches of a selector list out of order.
+ */
+export function leafBlocks(body) {
+  const blocks = [...body.querySelectorAll(BLOCKS)].filter((b) => !b.querySelector(BLOCKS))
+    .sort((x, y) => (x.compareDocumentPosition(y) & 4 ? -1 : 1));
+  return blocks.length ? blocks : [body];
+}
+
+export function page(source) {
   const xml = new DOMParser().parseFromString(source, 'application/xhtml+xml');
   if (!xml.querySelector('parsererror')) return xml;
   return new DOMParser().parseFromString(source, 'text/html');
@@ -123,9 +134,7 @@ async function epub(bytes) {
     const body = doc.querySelector('body') ?? doc.documentElement;
     // Furigana would otherwise be read twice: once as kanji, once as kana.
     doc.querySelectorAll('rt, rp').forEach((n) => n.remove());
-    // A quote holding paragraphs would yield its text twice; keep the leaves.
-    const blocks = [...body.querySelectorAll(BLOCKS)].filter((b) => !b.querySelector(BLOCKS));
-    for (const b of blocks.length ? blocks : [body]) {
+    for (const b of leafBlocks(body)) {
       const t = b.textContent.replace(/\s+/g, ' ').trim();
       if (t) out.push(t);
     }
