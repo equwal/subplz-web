@@ -2,6 +2,8 @@
 
 Line an audiobook up with its ebook, sentence by sentence.
 
+![subread.space: drop an audiobook and its ebook, get subtitles, videos and a read-along book](docs/screenshots/home.png)
+
 Drop in an audiobook and the ebook it was read from. You get back subtitles
 timed to the narration, with the wording taken from your own book rather than
 from a machine's guess at what it heard. Two things to do with that:
