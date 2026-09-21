@@ -21,3 +21,6 @@ __pycache__/
 Thumbs.db
 *.swp
 *~
+
+# Whole-book test input; local only
+tests/engine/golden-local/
