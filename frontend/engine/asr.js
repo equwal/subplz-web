@@ -7,11 +7,15 @@
  */
 import { pipeline, env } from '/vendor/transformers/transformers.min.js';
 
-// Everything from our own origin except the model weights themselves.
+// Everything from our own origin, the model weights included: tools/fetch_vendor.py
+// puts them under /vendor/models/, and nothing is fetched from anywhere else.
 env.backends.onnx.wasm.wasmPaths = new URL('/vendor/transformers/', import.meta.url).href;
-env.allowLocalModels = false;
+// A path, not a full URL: transformers.js treats an http(s) URL as remote.
+env.localModelPath = '/vendor/models/';
+env.allowLocalModels = true;
+env.allowRemoteModels = false;
 
-const MODEL = 'onnx-community/whisper-tiny';
+const MODEL = 'whisper-tiny';
 
 export async function hasWebGpu() {
   try { return !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch { return false; }
@@ -21,7 +25,7 @@ export class Recogniser {
   #pipe;
   device;
 
-  /** @param onProgress ({file, loaded, total}) while the ~40 MB of weights download (cached after). */
+  /** @param onProgress ({file, loaded, total}) while the ~120 MB of weights download (cached after). */
   static async open(onProgress) {
     const r = new Recogniser();
     r.device = (await hasWebGpu()) ? 'webgpu' : 'wasm';

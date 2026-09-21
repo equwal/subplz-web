@@ -130,8 +130,9 @@ async def cross_origin_isolation(request, call_next):
 
     The speech model runs in the browser on WebAssembly threads, which need
     SharedArrayBuffer, which browsers only hand to a cross-origin-isolated
-    page. "credentialless" rather than "require-corp": the model weights come
-    from a third-party host that sends CORS headers but not CORP ones.
+    page. Every file the page loads, the model weights included, comes from
+    this origin. "credentialless" rather than "require-corp" so that a
+    cross-origin image or link a visitor adds later does not break the page.
     """
     response = await call_next(request)
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"

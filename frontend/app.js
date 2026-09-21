@@ -427,28 +427,28 @@ el.start.addEventListener('click', async () => {
   clearError();
   const language = el.language.value;
 
-  // The server keeps the list of this visitor's books; a job in this tab costs nothing.
-  let registered;
-  try {
-    registered = await api('/api/local/jobs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        audio_filename: draft.audio.length > 1 ? `${draft.audio[0].name} + ${draft.audio.length - 1} more` : draft.audio[0].name,
-        audio_parts: draft.audio.length,
-        audio_bytes: draft.audio.reduce((n, f) => n + f.size, 0),
-        text_filename: draft.book.name, language,
-      }),
-    });
-  } catch (e) {
-    showError(e.message);
-    el.start.disabled = false;
-    return;
-  }
+  // The server keeps the list of this visitor's books, and nothing more: a job
+  // in this tab costs nothing and needs nothing from it. A server that is down
+  // or missing only loses the history entry.
+  const registered = await api('/api/local/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      audio_filename: draft.audio.length > 1 ? `${draft.audio[0].name} + ${draft.audio.length - 1} more` : draft.audio[0].name,
+      audio_parts: draft.audio.length,
+      audio_bytes: draft.audio.reduce((n, f) => n + f.size, 0),
+      text_filename: draft.book.name, language,
+    }),
+  }).catch(() => null);
+  const report = (path, body) => (registered
+    ? api(`/api/local/jobs/${registered.id}/${path}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).catch(() => {})
+    : Promise.resolve());
 
   const { Job, Cancelled } = await import('/engine/job.js');
   const job = new Job({ audio: draft.audio, book: draft.book, language, onStatus: renderWorking });
-  running = { job, serverId: registered.id, cover: draft.cover };
+  running = { job, serverId: registered?.id, cover: draft.cover };
   el.confirm.hidden = true;
   el.working.hidden = false;
   el.results.hidden = true;
@@ -459,28 +459,22 @@ el.start.addEventListener('click', async () => {
 
   try {
     const result = await job.run();
-    await api(`/api/local/jobs/${registered.id}/finish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        srt: result.srt, filename: result.srtName,
-        metadata: {
-          source: { audio_parts: draft.audio.length, text_filename: draft.book.name,
-                    audio_duration_seconds: result.duration },
-          alignment: { where: 'in the browser', device: job.device ?? 'cached transcript', model: 'whisper-tiny',
-                       language, mode: 'forced alignment against supplied text' },
-          output: { filename: result.srtName, cue_count: result.cues.length,
-                    match_rate: result.matchRate, paragraphs_dropped: result.paragraphsDropped },
-        },
-      }),
-    }).catch(() => { /* the subtitles are still here to download; only the history entry is missing */ });
+    // The subtitles are here to download whatever the server says; only the history entry can go missing.
+    await report('finish', {
+      srt: result.srt, filename: result.srtName,
+      metadata: {
+        source: { audio_parts: draft.audio.length, text_filename: draft.book.name,
+                  audio_duration_seconds: result.duration },
+        alignment: { where: 'in the browser', device: job.device ?? 'cached transcript', model: 'whisper-tiny',
+                     language, mode: 'forced alignment against supplied text' },
+        output: { filename: result.srtName, cue_count: result.cues.length,
+                  match_rate: result.matchRate, paragraphs_dropped: result.paragraphsDropped },
+      },
+    });
     showResults(result);
   } catch (e) {
     const stopped = e instanceof Cancelled;
-    await api(`/api/local/jobs/${registered.id}/fail`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: stopped ? 'Stopped.' : String(e.message || e) }),
-    }).catch(() => {});
+    await report('fail', { error: stopped ? 'Stopped.' : String(e.message || e) });
     job.close();
     running = null;
     el.working.hidden = true;

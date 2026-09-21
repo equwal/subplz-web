@@ -1,11 +1,12 @@
-"""Download the browser-side libraries into frontend/vendor/.
+"""Download the browser-side libraries and the speech model into frontend/vendor/.
 
-Processing happens in the visitor's browser, which needs three things that are
+Processing happens in the visitor's browser, which needs four things that are
 far too big to commit: ffmpeg compiled to WebAssembly (reads any audio format,
-muxes the video), the ONNX runtime, and transformers.js to drive Whisper on it.
-They are pinned here by exact version and unpacked from the npm registry, then
-served from our own origin - no CDN in the page, so nothing third-party has to
-be trusted or kept alive, and cross-origin isolation stays simple.
+muxes the video), the ONNX runtime, transformers.js to drive Whisper on it, and
+the Whisper-tiny weights themselves. They are pinned here by exact version or
+hash, taken from the npm registry and the Hugging Face hub, then served from
+our own origin - no CDN and no third-party host in the page, so nothing outside
+has to be trusted or kept alive, and cross-origin isolation stays simple.
 
     python tools/fetch_vendor.py          # idempotent; run on every deploy
 
@@ -47,6 +48,25 @@ PACKAGES = [
 ]
 
 
+# The speech model, as transformers.js loads it: the config and tokenizer files,
+# the full-precision encoder, and one decoder for each device (4-bit on WebGPU,
+# 8-bit on WebAssembly). The hash is the sha256 of the file on the hub, so a
+# changed or truncated download stops here.
+MODEL_REPO = "onnx-community/whisper-tiny"
+MODEL_REVISION = "main"
+MODEL_DIR = "models/whisper-tiny"
+MODEL_FILES = {
+    "config.json": None,
+    "preprocessor_config.json": None,
+    "tokenizer_config.json": None,
+    "generation_config.json": None,
+    "tokenizer.json": None,
+    "onnx/encoder_model.onnx": "6642befb640f950d",
+    "onnx/decoder_model_merged_q4.onnx": "a7573efde84f7d01",
+    "onnx/decoder_model_merged_quantized.onnx": "25e807a962b63493",
+}
+
+
 def fetch(package: str, version: str) -> bytes:
     meta_url = f"https://registry.npmjs.org/{package.replace('/', '%2F')}/{version}"
     with urllib.request.urlopen(meta_url, timeout=60) as r:
@@ -57,6 +77,23 @@ def fetch(package: str, version: str) -> bytes:
     if hashlib.sha1(blob).hexdigest() != dist["shasum"]:
         sys.exit(f"{package}@{version}: checksum mismatch")
     return blob
+
+
+def fetch_model() -> None:
+    """The Whisper weights, once. A file whose hash matches is not fetched again."""
+    for name, prefix in MODEL_FILES.items():
+        out = VENDOR / MODEL_DIR / name
+        if out.exists() and (prefix is None or hashlib.sha256(out.read_bytes()).hexdigest().startswith(prefix)):
+            print(f"ok       {MODEL_REPO}/{name}")
+            continue
+        print(f"fetching {MODEL_REPO}/{name}")
+        url = f"https://huggingface.co/{MODEL_REPO}/resolve/{MODEL_REVISION}/{name}"
+        with urllib.request.urlopen(url, timeout=600) as r:
+            blob = r.read()
+        if prefix is not None and not hashlib.sha256(blob).hexdigest().startswith(prefix):
+            sys.exit(f"{MODEL_REPO}/{name}: checksum mismatch")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(blob)
 
 
 def main() -> None:
@@ -80,6 +117,7 @@ def main() -> None:
                 out.write_bytes(member.read())
 
     stamp.write_text(json.dumps(want, indent=2))
+    fetch_model()
     total = sum(f.stat().st_size for f in VENDOR.rglob("*") if f.is_file())
     print(f"vendor/ is {total / 1e6:.0f} MB")
 
