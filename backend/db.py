@@ -143,6 +143,9 @@ class Job(Base):
     tier: Mapped[str] = mapped_column(
         String(16), default="free", server_default=text("'free'")
     )
+    # 1 when the work happens in the visitor's browser and the server only
+    # keeps the books: nothing to queue, nothing to resume after a restart.
+    local: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     # 1 if a credit was spent on this job, so a failed run can hand it back.
     credit_spent: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")

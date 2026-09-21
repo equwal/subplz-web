@@ -46,7 +46,7 @@ def _requeue_interrupted() -> None:
     with SessionLocal() as s:
         stale = (
             s.query(Job)
-            .filter(Job.status.in_([JobStatus.running, JobStatus.queued]))
+            .filter(Job.status.in_([JobStatus.running, JobStatus.queued]), Job.local == 0)
             .all()
         )
         for job in stale:
@@ -73,6 +73,9 @@ async def lifespan(_: FastAPI):
         "on" if settings.billing_enabled else "off",
     )
     _requeue_interrupted()
+    with SessionLocal() as s:
+        from .api import expire_stale_local_jobs
+        expire_stale_local_jobs(s)
     yield
     queue.shutdown()
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SubRead — read along with your audiobook</title>
-<link rel="stylesheet" href="/style.css?v=9">
+<link rel="stylesheet" href="/style.css?v=10">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 </head>
 <body>
@@ -31,7 +31,8 @@
     <p>
       Drop in an audiobook and the ebook it was read from. You get back subtitles
       timed to the narration, with the wording taken from your own book — not
-      from a machine's guess at what it heard.
+      from a machine's guess at what it heard. It all happens in this tab:
+      <strong>your files are never uploaded</strong>.
     </p>
     <ul class="uses">
       <li><strong>HoshiReader read-along</strong> — the .srt timing file, to match
@@ -99,7 +100,7 @@
   <div id="uploading" class="panel uploading" hidden>
     <div class="spinner" aria-hidden="true"></div>
     <div class="up-body">
-      <p class="up-title">Uploading &amp; analysing…</p>
+      <p class="up-title">Getting ready…</p>
       <div class="bar"><div id="upbar" class="bar-fill"></div></div>
       <p id="uptext" class="muted small">0%</p>
     </div>
@@ -159,7 +160,23 @@
     <p class="muted small" id="eta"></p>
   </section>
 
-  <!-- step 3: jobs -->
+  <!-- step 3: the job, running in this tab -->
+  <section id="working" class="panel working" hidden>
+    <p class="up-title" id="work-title">Starting</p>
+    <div class="bar"><div id="work-bar" class="bar-fill"></div></div>
+    <p id="work-meta" class="muted small"></p>
+    <div class="actions">
+      <button id="stop" class="ghost">Stop (progress is kept)</button>
+    </div>
+    <div id="results" hidden>
+      <div id="result-files" class="job-files"></div>
+      <p class="muted small">Videos are made here when you ask for them, in seconds.
+        They are not kept anywhere: make them before closing this tab.</p>
+      <div class="actions"><button id="another" class="ghost">Convert another book</button></div>
+    </div>
+  </section>
+
+  <!-- step 4: history -->
   <section id="jobs-section" hidden>
     <h2 class="section-title">Your conversions</h2>
     <ul id="jobs" class="jobs"></ul>
@@ -168,7 +185,8 @@
 
 <footer>
   <p class="muted small">
-    Alignment by <a href="https://github.com/kanjieater/SubPlz" target="_blank" rel="noopener">SubPlz</a>.
+    Alignment method from <a href="https://github.com/kanjieater/SubPlz" target="_blank" rel="noopener">SubPlz</a>;
+    speech model <a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a>.
     Every line of text comes from the book you upload, so names and spelling stay right.
   </p>
 </footer>
@@ -199,6 +217,6 @@
 
 <div id="toast" class="toast" hidden role="status"></div>
 
-<script src="/app.js?v=9"></script>
+<script type="module" src="/app.js?v=10"></script>
 </body>
 </html>

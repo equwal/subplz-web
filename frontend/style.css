@@ -277,6 +277,15 @@ button.ghost:hover { color: var(--ink); border-color: var(--muted); }
 .dl.secondary { background: transparent; color: var(--muted); border-color: var(--line); }
 .dl.secondary:hover { color: var(--ink); border-color: var(--muted); }
 
+/* ---------- the running job ---------- */
+.working .up-title { margin: 0 0 10px; font-weight: 600; }
+.working .job-files { margin-top: 16px; }
+button.dl { font: inherit; font-weight: 500; cursor: pointer; border: 1px solid transparent; border-radius: 9px; }
+button.dl:disabled { opacity: .6; cursor: progress; }
+.bar.indeterminate .bar-fill { width: 35% !important; animation: slide 1.4s ease-in-out infinite; }
+@keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .bar.indeterminate .bar-fill { animation: none; margin-left: 0; } }
+
 /* ---------- account bar ---------- */
 .account { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .who { color: var(--muted); font-size: 13px; max-width: 220px;

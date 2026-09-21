@@ -22,6 +22,9 @@ const el = {
   signinNote: $('signin-note'),
   pricingDialog: $('pricing-dialog'), pricingWhy: $('pricing-why'),
   plans: $('plans'), toast: $('toast'),
+  working: $('working'), workTitle: $('work-title'), workBar: $('work-bar'),
+  workMeta: $('work-meta'), stop: $('stop'), results: $('results'),
+  resultFiles: $('result-files'), another: $('another'),
 };
 
 let languages = [];
@@ -73,7 +76,8 @@ async function api(path, opts = {}) {
 /* ---------------- setup ---------------- */
 
 async function loadLanguages() {
-  languages = await api('/api/languages');
+  // Whisper's own list: the speech model is the only thing that cares.
+  ({ LANGUAGES: languages } = await import('/engine/languages.js'));
   el.language.innerHTML = '';
   for (const l of languages) {
     const o = document.createElement('option');
@@ -95,7 +99,6 @@ function setLanguage(code) {
     el.language.appendChild(o);
     el.language.value = code;
   }
-  updateSplitNote();
 }
 
 async function refreshAccount() {
@@ -227,7 +230,7 @@ function addFiles(files) {
   renderStaged();
   if (!audio.length && !text.length) return;  // an image alone is not a job
   if (staged.audio.length && staged.text) {
-    uploadFiles([...staged.audio, staged.text]);
+    prepare();
   }
 }
 
@@ -281,65 +284,47 @@ document.querySelectorAll('.slot-x').forEach((btn) => {
   });
 });
 
-function uploadFiles(files) {
-  clearError();
-  const list = [...files];
+/* Nothing is uploaded. Once both halves are here the book is read in this tab,
+   its language guessed, and the visitor asked to confirm before hours of work. */
+const NEEDS_CONVERTING = /\.(mobi|azw|azw3|prc)$/i;
+const natural = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
+async function prepare() {
+  clearError();
   el.dropzone.hidden = true;
   el.staged.hidden = true;
   el.confirm.hidden = true;
   el.uploading.hidden = false;
-  el.upbar.style.width = '0%';
-  el.uptext.textContent = 'Starting…';
+  el.upbar.style.width = '100%';
+  el.uptext.textContent = 'Reading the book…';
 
-  const form = new FormData();
-  for (const f of list) form.append('files', f, f.name);
-  if (staged.cover && signedIn) form.append('files', staged.cover, staged.cover.name);
-
-  // XHR rather than fetch: it reports upload progress, and these files are big.
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/uploads');
-  xhr.withCredentials = true;
-
-  xhr.upload.onprogress = (e) => {
-    if (!e.lengthComputable) return;
-    const pct = Math.round((e.loaded / e.total) * 100);
-    el.upbar.style.width = `${pct}%`;
-    el.uptext.textContent = pct < 100
-      ? `${pct}% — ${fmtBytes(e.loaded)} of ${fmtBytes(e.total)}`
-      : 'Analysing the book…';
-  };
-
-  xhr.onload = () => {
-    el.uploading.hidden = true;
-    if (xhr.status >= 200 && xhr.status < 300) {
-      try {
-        const body = JSON.parse(xhr.responseText);
-        if (body.cover_requires_sign_in) {
-          showError('Your cover image was not used — that needs an account. ' +
-                    'Everything else ran normally.');
-        }
-        showConfirm(body);
-      }
-      catch { showError('Server sent an unreadable response.'); resetToDrop(); }
-    } else {
-      let msg = `Upload failed (${xhr.status}).`;
-      try {
-        const b = JSON.parse(xhr.responseText);
-        if (b.detail) msg = typeof b.detail === 'string' ? b.detail : msg;
-      } catch { /* keep the generic message */ }
-      showError(msg);
-      resetToDrop();
+  try {
+    const { readBook, detectLanguage } = await import('/engine/book.js');
+    let book = staged.text;
+    if (NEEDS_CONVERTING.test(book.name)) {
+      // The one thing the browser cannot do itself: Kindle formats need a real
+      // parser. A book is small; the audio still never leaves this machine.
+      el.uptext.textContent = 'Converting the book to epub…';
+      const form = new FormData();
+      form.append('file', book, book.name);
+      const res = await fetch('/api/convert', { method: 'POST', body: form, credentials: 'same-origin' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not convert that book.');
+      book = new File([await res.blob()], res.headers.get('X-Filename') || 'book.epub');
     }
-  };
-
-  xhr.onerror = () => {
+    const parsed = await readBook(book);
+    if (!parsed.paragraphs.length) {
+      throw new Error(`No text could be read from ${book.name}. A scanned, image-only book cannot be aligned.`);
+    }
+    // 9.mp3 before 10.mp3: playback order is what the timeline is built from.
+    const audio = staged.audio.slice().sort((a, b) => natural.compare(a.name, b.name));
+    draft = { audio, book, cover: staged.cover, detected: detectLanguage(parsed.paragraphs) };
     el.uploading.hidden = true;
-    showError('Upload failed: lost connection to the server.');
+    showConfirm();
+  } catch (e) {
+    el.uploading.hidden = true;
+    showError(e.message);
     resetToDrop();
-  };
-
-  xhr.send(form);
+  }
 }
 
 function resetToDrop() {
@@ -348,117 +333,219 @@ function resetToDrop() {
   el.dropzone.hidden = false;
   el.confirm.hidden = true;
   el.uploading.hidden = true;
+  el.working.hidden = true;
   el.picker.value = '';
 }
 
 /* ---------------- confirm ---------------- */
 
-async function showConfirm(payload) {
-  // The options must exist before we can select the detected language.
-  try { await languagesReady; } catch { /* handled at boot */ }
+async function showConfirm() {
+  const bytes = draft.audio.reduce((n, f) => n + f.size, 0);
+  const name = draft.audio.length > 1
+    ? `${draft.audio[0].name} + ${draft.audio.length - 1} more` : draft.audio[0].name;
+  el.cAudio.innerHTML = `${escapeHtml(name)} <span class="meta">${fmtBytes(bytes)}</span>`;
+  el.cText.textContent = draft.book.name;
 
-  draft = payload.job;
-  const d = payload.detected;
-
-  const dur = fmtDuration(draft.audio_duration_seconds);
-  const bits = [
-    draft.audio_parts > 1 ? `${draft.audio_parts} parts` : null,
-    fmtBytes(draft.audio_bytes),
-    dur,
-  ].filter(Boolean);
-  el.cAudio.innerHTML =
-    `${escapeHtml(draft.audio_filename)} <span class="meta">${bits.join(' · ')}</span>`;
-  el.cText.textContent = draft.text_filename;
-
-  setLanguage(draft.language);
-
-  if (d.code && d.supported) {
-    const pct = Math.round(d.confidence * 100);
-    el.detected.textContent = `detected ${d.name} · ${pct}%`;
-    el.detected.classList.toggle('low', d.confidence < 0.7);
-    el.detected.hidden = false;
-  } else if (d.code) {
-    el.detected.textContent = `detected ${d.name} — not supported, pick one`;
-    el.detected.classList.add('low');
-    el.detected.hidden = false;
+  if (draft.detected) {
+    setLanguage(draft.detected);
+    el.detected.textContent = 'detected from the book';
+    el.detected.classList.remove('low');
   } else {
-    el.detected.hidden = true;
+    el.detected.textContent = 'could not tell — please choose';
+    el.detected.classList.add('low');
   }
+  el.detected.hidden = false;
+  el.match.hidden = true;
 
-  renderMatch(payload.match);
+  // Only the speech model decides how long this takes, and only the GPU
+  // decides how fast the speech model is. Say which it will be.
+  const { hasWebGpu } = await import('/engine/asr.js');
+  const gpu = await hasWebGpu();
+  const { savedProgress } = await import('/engine/job.js');
+  const saved = await savedProgress(draft.audio, el.language.value);
+  el.eta.textContent =
+    (saved?.complete ? 'This audio was transcribed here before, so this will take seconds. '
+      : saved?.doneUntil ? `Picks up where it stopped, ${fmtDuration(saved.doneUntil)} in. ` : '') +
+    'Everything runs in this tab: nothing is uploaded, and it has to stay open. ' +
+    (saved?.complete ? '' : gpu ? 'Expect roughly a quarter of the book\'s length.'
+      : 'This browser has no WebGPU, so expect about the book\'s own length — Chrome or Edge on a computer with a graphics card is several times faster.');
 
-  el.eta.textContent = draft.audio_duration_seconds
-    ? `Alignment usually takes a fraction of the book's length, but on CPU it can approach it. ${dur} of audio — expect a long run.`
-    : '';
-
+  el.start.textContent = saved?.doneUntil && !saved.complete ? 'Continue' : 'Start';
   el.confirm.hidden = false;
   el.start.disabled = false;
   el.confirm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-/* The preflight score, using the backend's own matching rule. A poor score is
-   shown but never blocks: the check samples the audio, so it can be wrong, and
-   it is the user's book. */
-function renderMatch(m) {
-  if (!m || m.skipped || m.verdict === 'unknown') {
-    el.match.hidden = true;
-    el.start.textContent = 'Start alignment';
+el.discard.addEventListener('click', () => { clearError(); resetToDrop(); });
+
+/* ---------------- the job, in this tab ---------------- */
+
+let running = null;    // { job, serverId }
+let wakeLock = null;
+
+el.start.addEventListener('click', async () => {
+  if (!draft || running) return;
+  el.start.disabled = true;
+  clearError();
+  const language = el.language.value;
+  const tier = chosenTier();
+
+  // Ask first: the free window and credits are the server's to say.
+  let registered;
+  try {
+    registered = await api('/api/local/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audio_filename: draft.audio.length > 1 ? `${draft.audio[0].name} + ${draft.audio.length - 1} more` : draft.audio[0].name,
+        audio_parts: draft.audio.length,
+        audio_bytes: draft.audio.reduce((n, f) => n + f.size, 0),
+        text_filename: draft.book.name, language, tier,
+      }),
+    });
+  } catch (e) {
+    // 402 is not an error to apologise for; it is the price list's cue.
+    if (e.status === 402) openPricing(e.message); else showError(e.message);
+    el.start.disabled = false;
     return;
   }
 
-  el.match.hidden = false;
-  el.match.className = `match ${m.verdict}`;
-  el.matchBadge.textContent =
-    { good: 'match', marginal: 'weak match', poor: 'no match' }[m.verdict] || m.verdict;
-  el.matchSummary.textContent = m.summary;
+  const { Job, Cancelled } = await import('/engine/job.js');
+  const job = new Job({ audio: draft.audio, book: draft.book, language, onStatus: renderWorking });
+  running = { job, serverId: registered.id, tier: registered.tier, cover: draft.cover };
+  el.confirm.hidden = true;
+  el.working.hidden = false;
+  el.results.hidden = true;
+  el.stop.hidden = false;
+  renderWorking({ phase: 'preparing', detail: 'Starting', fraction: 0 });
+  refreshAccount();
+  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch { /* not granted: fine */ }
 
-  el.matchWarnings.innerHTML = '';
-  for (const w of m.warnings || []) {
-    const li = document.createElement('li');
-    li.textContent = w;
-    el.matchWarnings.appendChild(li);
-  }
-
-  // Make the user's choice explicit when we expect this to fail.
-  el.start.textContent =
-    m.verdict === 'poor' ? 'Start anyway' : 'Start alignment';
-}
-
-function updateSplitNote() {
-  // The note comes from the server, so the UI carries no knowledge of which
-  // alignment backend is running or how it splits sentences.
-  const lang = languages.find((l) => l.code === el.language.value);
-  el.splitnote.textContent = (lang && lang.note) || '';
-}
-
-el.language.addEventListener('change', updateSplitNote);
-
-el.discard.addEventListener('click', async () => {
-  if (draft) { try { await api(`/api/jobs/${draft.id}`, { method: 'DELETE' }); } catch {} }
-  clearError();
-  resetToDrop();
-  refreshJobs();
-});
-
-el.start.addEventListener('click', async () => {
-  if (!draft) return;
-  el.start.disabled = true;
-  clearError();
   try {
-    await api(`/api/jobs/${draft.id}/start`, {
+    const result = await job.run();
+    await api(`/api/local/jobs/${registered.id}/finish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: el.language.value, tier: chosenTier() }),
-    });
-    resetToDrop();
+      body: JSON.stringify({
+        srt: result.srt, filename: result.srtName,
+        metadata: {
+          source: { audio_parts: draft.audio.length, text_filename: draft.book.name,
+                    audio_duration_seconds: result.duration },
+          alignment: { where: 'in the browser', device: job.device ?? 'cached transcript', model: 'whisper-tiny',
+                       language, mode: 'forced alignment against supplied text' },
+          output: { filename: result.srtName, cue_count: result.cues.length,
+                    match_rate: result.matchRate, paragraphs_dropped: result.paragraphsDropped },
+        },
+      }),
+    }).catch(() => { /* the subtitles are still here to download; only the history entry is missing */ });
+    showResults(result);
+  } catch (e) {
+    const stopped = e instanceof Cancelled;
+    await api(`/api/local/jobs/${registered.id}/fail`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: stopped ? 'Stopped.' : String(e.message || e) }),
+    }).catch(() => {});
+    job.close();
+    running = null;
+    el.working.hidden = true;
+    if (stopped) { toast('Stopped. What was transcribed is kept — the same files will carry on from there.'); el.confirm.hidden = false; el.start.disabled = false; }
+    else { showError(e.message || String(e)); resetToDrop(); }
+  } finally {
+    wakeLock?.release?.().catch(() => {});
+    refreshAccount();
     refreshJobs();
+  }
+});
+
+el.stop.addEventListener('click', () => { running?.job.cancel(); el.stop.disabled = true; });
+
+function renderWorking(st) {
+  el.workTitle.textContent = st.detail;
+  el.workBar.style.width = `${Math.round((st.fraction || 0) * 100)}%`;
+  el.workBar.parentElement.classList.toggle('indeterminate', !!st.indeterminate);
+  el.workMeta.textContent = [
+    `${Math.round((st.fraction || 0) * 100)}%`,
+    st.eta != null ? `about ${fmtDuration(st.eta)} left` : null,
+    st.speed ? `${st.speed.toFixed(1)}× real time` : null,
+  ].filter(Boolean).join('  ·  ');
+}
+
+function showResults(r) {
+  el.stop.hidden = true;
+  el.stop.disabled = false;
+  el.results.hidden = false;
+  const pct = Math.round(r.matchRate * 100);
+  el.workTitle.textContent = `Done — ${r.cues.length} lines, ${pct}% found in the book`;
+  el.workBar.style.width = '100%';
+  el.workMeta.textContent =
+    (pct < 80 ? 'That is low: usually a different edition or translation, or the wrong language. ' : '') +
+    (r.paragraphsDropped ? `${r.paragraphsDropped} paragraphs of the book were never narrated (front matter, notes) and were left out.` : '');
+  renderResultButtons();
+}
+
+function renderResultButtons() {
+  const r = running.job.result;
+  const paid = !account?.billing_enabled || running.tier === 'youtube';
+  el.resultFiles.innerHTML = '';
+  const button = (label, hint, cls, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = `dl ${cls}`; b.title = hint; b.textContent = label;
+    b.addEventListener('click', () => onClick(b));
+    el.resultFiles.appendChild(b);
+  };
+  button('⬇ Subtitles (.srt)', 'For Hoshi Reader, or to upload alongside the YouTube video', '',
+    () => save(new File([r.srt], r.srtName, { type: 'application/x-subrip' })));
+  button('⬇ Video with subs built in (.mkv)', 'Subtitles inside the file, for MPV or VLC', '',
+    (b) => makeVideo('mkv', b));
+  button(paid ? '⬇ Video for YouTube (.mp4)' : '🔒 Unlock the YouTube video (.mp4)',
+    paid ? 'No subtitles baked in — add the .srt in YouTube Studio'
+      : 'Part of the YouTube tier — one credit, or the unlimited plan',
+    paid ? '' : 'locked', (b) => (paid ? makeVideo('mp4', b) : unlockRunning(b)));
+}
+
+async function makeVideo(kind, btn) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  try {
+    const file = await running.job.video(kind, {
+      coverFile: signedIn ? running.cover : null,
+      onProgress: (f) => { btn.textContent = `Making the ${kind}… ${Math.round(f * 100)}%`; },
+    });
+    save(file);
+  } catch (e) { showError(`Could not make the ${kind}: ${e.message}`); }
+  btn.textContent = label;
+  btn.disabled = false;
+}
+
+async function unlockRunning(btn) {
+  btn.disabled = true;
+  try {
+    const j = await api(`/api/jobs/${running.serverId}/unlock`, { method: 'POST' });
+    running.tier = j.tier;
+    toast('Unlocked.');
+    renderResultButtons();
     refreshAccount();
   } catch (e) {
-    // 402 is not an error to apologise for; it is the price list's cue.
-    if (e.status === 402) openPricing(e.message);
-    else showError(e.message);
-    el.start.disabled = false;
+    if (e.status === 402) { unlockJobId = running.serverId; openPricing(e.message); } else showError(e.message);
+    btn.disabled = false;
   }
+}
+
+function save(file) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+}
+
+el.another.addEventListener('click', () => { running?.job.close(); running = null; resetToDrop(); });
+
+// Hours of work live in this tab. Make closing it a decision, not an accident.
+window.addEventListener('beforeunload', (e) => {
+  if (running && !running.job.result) { e.preventDefault(); e.returnValue = ''; }
 });
 
 /* ---------------- jobs ---------------- */
@@ -473,7 +560,9 @@ function jobCard(j) {
   const li = document.createElement('li');
   li.className = 'job';
 
-  const active = j.status === 'running' || j.status === 'queued';
+  // A browser-run job reports no progress to the server; it is either ours
+  // (shown above, in the working panel) or running in some other tab.
+  const active = !j.local && (j.status === 'running' || j.status === 'queued');
   const pct = Math.round(j.progress * 100);
 
   const meta = [
@@ -498,6 +587,9 @@ function jobCard(j) {
       <div class="job-stage"><span>${escapeHtml(j.stage)}</span><span>${pct}%</span></div>`;
   }
 
+  if (j.local && j.status === 'running') {
+    html += '<div class="job-stage"><span>Running in a browser tab</span></div>';
+  }
   if (j.error) html += `<div class="job-err">${escapeHtml(j.error)}</div>`;
 
   const files = j.artifacts || [];
@@ -564,12 +656,12 @@ async function refreshJobs() {
   catch { return; }
 
   // Drafts live in the confirm panel, not the list.
-  const visible = jobs.filter((j) => j.status !== 'draft');
+  const visible = jobs.filter((j) => j.status !== 'draft' && j.id !== running?.serverId);
   el.jobsSection.hidden = visible.length === 0;
   el.jobs.innerHTML = '';
   for (const j of visible) el.jobs.appendChild(jobCard(j));
 
-  const anyActive = visible.some((j) => j.status === 'running' || j.status === 'queued');
+  const anyActive = visible.some((j) => !j.local && (j.status === 'running' || j.status === 'queued'));
   clearTimeout(pollTimer);
   if (anyActive) pollTimer = setTimeout(refreshJobs, 1500);
 }
@@ -723,6 +815,14 @@ async function checkout(planId, btn) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan_id: planId, job_id: unlockJobId }),
     });
+    if (running) {
+      // The finished job only exists in this tab. Pay in another one.
+      window.open(url, '_blank', 'noopener');
+      el.pricingDialog.close();
+      toast('Checkout opened in a new tab. Come back here when you have paid.', 12000);
+      btn.disabled = false;
+      return;
+    }
     window.location.href = url;  // Stripe's page; we come back via /api/billing/return
   } catch (e) {
     el.pricingDialog.close();
@@ -804,6 +904,16 @@ async function handleArrival() {
     toast('Payment is still being confirmed. Credits appear here as soon as it clears.', 9000);
   }
 }
+
+// Back from paying in the other tab: the purchase unlocked this job server-side.
+window.addEventListener('focus', async () => {
+  if (!running?.job.result || running.tier === 'youtube') return;
+  try {
+    const j = await api(`/api/jobs/${running.serverId}`);
+    if (j.tier === 'youtube') { running.tier = j.tier; renderResultButtons(); toast('Unlocked.'); }
+    refreshAccount();
+  } catch { /* try again on the next focus */ }
+});
 
 /* ---------------- boot ---------------- */
 

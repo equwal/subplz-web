@@ -145,6 +145,7 @@ class JobOut(BaseModel):
     audio_duration_seconds: float | None
     error: str | None
     created_at: str
+    local: bool = False
     tier: str = billing.FREE
     artifacts: list[ArtifactOut] = Field(default_factory=list)
 
@@ -189,6 +190,28 @@ class AccountOut(BaseModel):
     queue_depth: int
 
 
+class LocalJobIn(BaseModel):
+    """A conversion about to run in the visitor's browser."""
+    audio_filename: str = Field(max_length=512)
+    audio_parts: int = Field(default=1, ge=1, le=2000)
+    audio_bytes: int = Field(default=0, ge=0)
+    audio_duration_seconds: float | None = None
+    text_filename: str = Field(max_length=512)
+    language: str = Field(max_length=16)
+    tier: Literal["free", "youtube"] = "free"
+
+
+class LocalFinishIn(BaseModel):
+    # A twenty-hour book is a few megabytes of subtitles.
+    srt: str = Field(max_length=8_000_000)
+    filename: str = Field(max_length=512)
+    metadata: dict = Field(default_factory=dict)
+
+
+class LocalFailIn(BaseModel):
+    error: str = Field(default="", max_length=4000)
+
+
 class EmailIn(BaseModel):
     email: str
 
@@ -222,6 +245,7 @@ def _job_out(job: Job, arts: list[Artifact]) -> JobOut:
         audio_duration_seconds=job.audio_duration_seconds,
         error=job.error,
         created_at=job.created_at.isoformat(),
+        local=bool(job.local),
         tier=job.tier or billing.FREE,
         artifacts=[
             ArtifactOut(
@@ -644,6 +668,157 @@ def start_job(
 
     queue.enqueue(job.id)
     return _job_out(job, [])
+
+
+# --------------------------------------------------------------------------
+# jobs that run in the browser
+# --------------------------------------------------------------------------
+#
+# The audio never reaches us. The server's part is to say whether the job may
+# start (the free window, or a credit), and to keep the finished subtitles so
+# they are still there on another device. Nothing here can be enforced against
+# someone who edits the page's JavaScript, and that is accepted: see billing.py.
+
+_LOCAL_STALE_HOURS = 48
+
+
+@router.post("/local/jobs", response_model=JobOut)
+def start_local_job(
+    body: LocalJobIn,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    # The same book started again - a closed tab, a reload - carries on under
+    # the job it already paid for rather than being charged a second time.
+    running = (
+        session.query(Job)
+        .filter(
+            Job.account_id == account.id, Job.local == 1,
+            Job.status == JobStatus.running,
+            Job.audio_filename == body.audio_filename,
+            Job.audio_bytes == body.audio_bytes,
+        )
+        .order_by(Job.created_at.desc())
+        .first()
+    )
+    if running is not None:
+        if body.tier == billing.YOUTUBE and running.tier != billing.YOUTUBE:
+            try:
+                billing.unlock(session, account, running)
+            except billing.PaymentRequired as exc:
+                session.rollback()
+                raise HTTPException(402, str(exc)) from exc
+        running.language = body.language
+        session.commit()
+        return _job_out(running, [])
+
+    job = Job(
+        account_id=account.id, status=JobStatus.running, local=1,
+        language=body.language, splitter="browser", model="whisper-tiny",
+        audio_filename=body.audio_filename, text_filename=body.text_filename,
+        audio_parts=body.audio_parts, audio_bytes=body.audio_bytes,
+        audio_duration_seconds=body.audio_duration_seconds,
+        stage="Running in your browser", started_at=utcnow(),
+    )
+    session.add(job)
+    try:
+        billing.authorize_start(session, account, job, body.tier)
+    except billing.PaymentRequired as exc:
+        session.rollback()
+        raise HTTPException(402, str(exc)) from exc
+    session.commit()
+    return _job_out(job, [])
+
+
+@router.post("/local/jobs/{job_id}/finish", response_model=JobOut)
+def finish_local_job(
+    job_id: str,
+    body: LocalFinishIn,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    job = _load(session, account, job_id)
+    if not job.local or job.status != JobStatus.running:
+        raise HTTPException(409, f"Job is already {job.status.value}.")
+
+    import json
+    import tempfile
+
+    name = Path(body.filename).name or "subtitles.srt"
+    with tempfile.TemporaryDirectory() as tmp:
+        for kind, filename, content in (
+            ("srt", name, body.srt),
+            ("metadata", "metadata.json",
+             json.dumps({"job_id": job.id, **body.metadata}, ensure_ascii=False, indent=2)),
+        ):
+            src = Path(tmp) / filename
+            # Bytes, not text: on Windows write_text would turn every line ending into CRLF.
+            src.write_bytes(content.encode("utf-8"))
+            key = f"{job.id}/{filename}"
+            size = storage.put_file(key, src)
+            session.add(Artifact(job_id=job.id, kind=kind, filename=filename,
+                                 storage_key=key, size_bytes=size))
+
+    job.status = JobStatus.succeeded
+    job.stage, job.progress, job.finished_at = "Done", 1.0, utcnow()
+    session.commit()
+    return _job_out(job, _artifacts(session, job.id))
+
+
+@router.post("/local/jobs/{job_id}/fail", response_model=JobOut)
+def fail_local_job(
+    job_id: str,
+    body: LocalFailIn,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    job = _load(session, account, job_id)
+    if not job.local or job.status != JobStatus.running:
+        raise HTTPException(409, f"Job is already {job.status.value}.")
+    job.status = JobStatus.failed
+    job.stage, job.error, job.finished_at = "Failed", body.error or "Failed in the browser.", utcnow()
+    # Whatever went wrong, they got nothing: the free slot or the credit goes back.
+    billing.refund(session, job)
+    session.commit()
+    return _job_out(job, [])
+
+
+def expire_stale_local_jobs(session: Session) -> int:
+    """A tab that was closed for good never reports back. Release what it held."""
+    from datetime import timedelta
+
+    stale = (
+        session.query(Job)
+        .filter(Job.local == 1, Job.status == JobStatus.running,
+                Job.created_at < utcnow() - timedelta(hours=_LOCAL_STALE_HOURS))
+        .all()
+    )
+    for job in stale:
+        job.status, job.stage, job.finished_at = JobStatus.canceled, "Abandoned", utcnow()
+        billing.refund(session, job)
+    session.commit()
+    return len(stale)
+
+
+@router.post("/convert")
+async def convert_book(file: Annotated[UploadFile, File()]):
+    """mobi / azw3 to epub. The one thing the browser cannot do for itself:
+    those formats need a real parser, and a book is small enough to send."""
+    name = Path(file.filename or "book").name
+    if not convert.needs_conversion(name):
+        raise HTTPException(400, "That format does not need converting.")
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / name
+        await _save(file, src)
+        try:
+            out = convert.to_readable(src, Path(tmp) / "converted")
+        except convert.ConversionError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        data = out.read_bytes()
+    return Response(data, media_type="application/epub+zip",
+                    headers={"X-Filename": Path(name).stem + ".epub"})
 
 
 @router.get("/jobs", response_model=list[JobOut])
