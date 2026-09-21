@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+import subprocess
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -29,6 +30,21 @@ logging.basicConfig(
 log = logging.getLogger("subplz.web")
 
 FRONTEND = ROOT / "frontend"
+
+
+def _version() -> str:
+    """The release this checkout is: the nearest git tag, e.g. v2.0.0 or
+    v2.0.0-3-gabc1234 when it is ahead of one. Answers "what is deployed?"."""
+    try:
+        return subprocess.run(
+            ["git", "-c", f"safe.directory={ROOT.as_posix()}", "describe", "--tags", "--always", "--dirty"],
+            cwd=ROOT, capture_output=True, text=True, timeout=10, check=True,
+        ).stdout.strip() or "unknown"
+    except (subprocess.SubprocessError, OSError):
+        return "unknown"
+
+
+VERSION = _version()
 
 # Python takes these from the OS, and Windows gets both wrong. A module served
 # as text/plain is refused outright, and WebAssembly will not stream-compile.
@@ -108,6 +124,7 @@ async def cross_origin_isolation(request, call_next):
 def healthz():
     return {
         "ok": True,
+        "version": VERSION,
         "languages": len(all_languages()),
         "queue_backend": settings.queue_backend,
         "queue_depth": queue.depth(),

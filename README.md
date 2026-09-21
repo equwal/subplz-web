@@ -373,6 +373,18 @@ once you are registered somewhere).
 
 ---
 
+## Releases
+
+Every deploy is a tag (`vMAJOR.MINOR.PATCH`) with a GitHub release; `/healthz`
+reports which one is running. Tag, push, then deploy that tag:
+
+```bash
+git tag -a v2.0.1 -m "what changed" && git push origin main --tags
+gh release create v2.0.1 --notes "what changed"
+```
+
+---
+
 ## Scaling out
 
 Everything environment-specific is an env var with a localhost default. See
