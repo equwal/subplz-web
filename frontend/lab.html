@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>engine lab</title>
+<body style="font:14px/1.5 ui-monospace,monospace;padding:20px;max-width:900px">
+<h3>Browser engine lab</h3>
+<p>Proves the client-side pieces one at a time. Not linked from the site.</p>
+<input type="file" id="f"> <button id="go">run on /vendor/lab/ru.mp3</button>
+<pre id="out"></pre>
+<script type="module">
+import { Media, quietestPoint } from '/engine/media.js';
+import { Recogniser, hasWebGpu } from '/engine/asr.js';
+
+const out = document.getElementById('out');
+const log = (...a) => { out.textContent += a.join(' ') + '\n'; };
+window.lab = { done: false, error: null, results: {} };
+
+async function run(file) {
+  try {
+    log('crossOriginIsolated:', crossOriginIsolated, '| threads:', navigator.hardwareConcurrency,
+        '| webgpu:', await hasWebGpu());
+    let t = performance.now();
+    const media = await Media.open();
+    log(`ffmpeg loaded in ${((performance.now() - t) / 1000).toFixed(1)}s`);
+
+    const path = await media.mount(file, '/in');
+    const info = await media.probe(path);
+    log('probe:', JSON.stringify(info));
+
+    t = performance.now();
+    const pcm = await media.pcm(path, 0, 60);
+    log(`decoded ${(pcm.length / 16000).toFixed(1)}s of audio in ${((performance.now() - t) / 1000).toFixed(2)}s;`,
+        'cut at', (quietestPoint(pcm) / 16000).toFixed(2) + 's');
+
+    t = performance.now();
+    const asr = await Recogniser.open((p) => { window.lab.results.download = `${p.file} ${Math.round(p.progress)}%`; });
+    log(`model ready on ${asr.device} in ${((performance.now() - t) / 1000).toFixed(1)}s`);
+
+    const lang = new URLSearchParams(location.search).get('lang') || null;
+    t = performance.now();
+    await asr.transcribe(pcm.subarray(0, 16000 * 20), lang, 0);
+    log(`warm-up pass (shader compile) ${((performance.now() - t) / 1000).toFixed(1)}s, language=${lang}`);
+    t = performance.now();
+    const segments = await asr.transcribe(pcm, lang, 0);
+    const took = (performance.now() - t) / 1000;
+    log(`transcribed in ${took.toFixed(1)}s = ${(pcm.length / 16000 / took).toFixed(1)}x real time, ${segments.length} segments`);
+    for (const s of segments.slice(0, 8)) log(`  ${s.start.toFixed(2)}-${s.end.toFixed(2)}  ${s.text}`);
+    window.lab.results = { info, device: asr.device, took, segments };
+  } catch (e) {
+    log('FAILED:', e?.stack || e);
+    window.lab.error = String(e?.message || e);
+  }
+  window.lab.done = true;
+}
+
+document.getElementById('go').onclick = async () => {
+  const blob = await (await fetch('/vendor/lab/ru.mp3')).blob();
+  run(new File([blob], 'ru.mp3'));
+};
+// The whole job: decode, transcribe, align, then both videos.
+window.fullJob = async () => {
+  window.lab = { done: false, error: null, results: {} };
+  out.textContent = '';
+  try {
+    const { Job } = await import('/engine/job.js');
+    const { detectLanguage, readBook } = await import('/engine/book.js');
+    const get = async (n) => new File([await (await fetch('/vendor/lab/' + n)).blob()], n);
+    const audio = await get('ru.mp3'), book = await get('moskva.epub');
+    const parsed = await readBook(book);
+    const lang = detectLanguage(parsed.paragraphs);
+    log(`book: ${parsed.paragraphs.length} paragraphs, cover ${parsed.cover ? parsed.cover.name : 'none'}, detected language ${lang}`);
+    let last = '';
+    const job = new Job({ audio: [audio], book, language: lang, onStatus: (st) => {
+      const line = `${st.phase}: ${st.detail}`;
+      if (line !== last) { last = line; log('  ' + line, st.speed ? `(${st.speed.toFixed(1)}x)` : ''); }
+    }});
+    let t = performance.now();
+    const r = await job.run();
+    log(`job done in ${((performance.now() - t) / 1000).toFixed(1)}s on ${job.device}: ${r.cues.length} cues, ` +
+        `${(r.matchRate * 100).toFixed(0)}% matched, ${r.paragraphsDropped}/${r.paragraphsDropped + r.paragraphsUsed} paragraphs dropped`);
+    log(r.srt.split('\n').slice(0, 16).join('\n'));
+    for (const kind of ['mkv', 'mp4']) {
+      t = performance.now();
+      const file = await job.video(kind);
+      log(`${kind}: ${file.name} ${(file.size / 1e6).toFixed(2)} MB in ${((performance.now() - t) / 1000).toFixed(1)}s`);
+      window.lab.results[kind] = file;
+    }
+    window.lab.results.srt = r.srt;
+  } catch (e) { log('FAILED:', e?.stack || e); window.lab.error = String(e?.message || e); }
+  window.lab.done = true;
+};
+
+document.getElementById('f').onchange = (e) => run(e.target.files[0]);
+</script>

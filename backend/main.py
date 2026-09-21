@@ -9,6 +9,7 @@ CORS config and no second server.
 from __future__ import annotations
 
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -28,6 +29,12 @@ logging.basicConfig(
 log = logging.getLogger("subplz.web")
 
 FRONTEND = ROOT / "frontend"
+
+# Python takes these from the OS, and Windows gets both wrong. A module served
+# as text/plain is refused outright, and WebAssembly will not stream-compile.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("application/wasm", ".wasm")
 
 
 def _requeue_interrupted() -> None:
@@ -77,6 +84,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+
+
+@app.middleware("http")
+async def cross_origin_isolation(request, call_next):
+    """Let the page use threads.
+
+    The speech model runs in the browser on WebAssembly threads, which need
+    SharedArrayBuffer, which browsers only hand to a cross-origin-isolated
+    page. "credentialless" rather than "require-corp": the model weights come
+    from a third-party host that sends CORS headers but not CORP ones.
+    """
+    response = await call_next(request)
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
+    return response
 
 
 @app.get("/healthz")
