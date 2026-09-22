@@ -199,7 +199,10 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
     )
     # A retired plan too: the buyer may have opened the payment page before
     # the plan was retired.
-    plan = pricing.get(meta.get("plan_id") or "", retired=True)
+    from . import captions  # captions imports api, which imports this module
+
+    plan = (pricing.get(meta.get("plan_id") or "", retired=True)
+            or captions.pack(meta.get("plan_id") or ""))
     if account is None or plan is None:
         log.error("checkout %s: unknown account or plan %r", checkout.get("id"), meta)
         return None
@@ -233,6 +236,7 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
     # its books come from the subscription, month by month.
     if plan.credits and not plan.recurring:
         account.purchased_credits += plan.credits
+    captions.fulfil(session, account, plan)
     session.commit()
 
     if checkout.get("subscription"):

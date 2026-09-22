@@ -19,6 +19,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import captions
 from .api import router
 from .db import Job, JobStatus, SessionLocal, init_db
 from .languages import all_languages
@@ -126,6 +127,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+app.include_router(captions.router)
 
 
 @app.middleware("http")
