@@ -248,7 +248,6 @@ document.querySelectorAll('.slot-x').forEach((btn) => {
 
 /* Nothing is uploaded. Once both halves are here the book is read in this tab,
    its language guessed, and the visitor asked to confirm before hours of work. */
-const NEEDS_CONVERTING = /\.(mobi|azw|azw3|prc)$/i;
 const natural = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
 async function prepare() {
@@ -262,17 +261,7 @@ async function prepare() {
 
   try {
     const { readBook, detectLanguage } = await import('/engine/book.js');
-    let book = staged.text;
-    if (NEEDS_CONVERTING.test(book.name)) {
-      // The one thing the browser cannot do itself: Kindle formats need a real
-      // parser. A book is small; the audio still never leaves this machine.
-      el.uptext.textContent = 'Converting the book to epub…';
-      const form = new FormData();
-      form.append('file', book, book.name);
-      const res = await fetch('/api/convert', { method: 'POST', body: form, credentials: 'same-origin' });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not convert that book.');
-      book = new File([await res.blob()], res.headers.get('X-Filename') || 'book.epub');
-    }
+    const book = staged.text;
     const parsed = await readBook(book);
     if (!parsed.paragraphs.length) {
       throw new Error(`No text could be read from ${book.name}. A scanned, image-only book cannot be aligned.`);

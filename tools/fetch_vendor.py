@@ -45,6 +45,10 @@ PACKAGES = [
         for name in ("ort.webgpu.bundle.min.mjs", "ort-wasm-simd-threaded.asyncify.mjs",
                      "ort-wasm-simd-threaded.asyncify.wasm")
     }),
+    # Reads Kindle books (MOBI and KF8) in the browser. One file, no imports.
+    ("foliate-js", "1.0.1", {
+        "package/mobi.js": "foliate/mobi.js",
+    }),
 ]
 
 

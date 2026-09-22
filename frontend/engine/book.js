@@ -1,16 +1,17 @@
 /* A book as a flat list of paragraphs in reading order - read in the browser,
  * never uploaded.
  *
- * epub (a zip of XHTML), fb2 (XML), Aozora Bunko (Shift_JIS text with ruby
- * markup, usually zipped) and plain text. No zip library: the platform can
- * inflate (DecompressionStream), and the little that is left of the format is
- * a directory at the end of the file.
+ * epub (a zip of XHTML), Kindle (MOBI and KF8, through foliate-js), fb2 (XML),
+ * Aozora Bunko (Shift_JIS text with ruby markup, usually zipped) and plain
+ * text. No zip library: the platform can inflate (DecompressionStream), and
+ * the little that is left of the format is a directory at the end of the file.
  */
 
 const BLOCKS = 'p, li, blockquote, h1, h2, h3, h4, h5, h6';
 
 export async function readBook(file) {
   const name = file.name.toLowerCase();
+  if (/\.(mobi|azw|azw3|prc)$/.test(name)) return mobi(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (name.endsWith('.epub')) return epub(bytes);
   if (name.endsWith('.fb2.zip') || name.endsWith('.fbz')) return fb2(decode(await firstEntry(bytes, /\.fb2$/i)));
@@ -148,6 +149,42 @@ async function epub(bytes) {
     const [name, size] = sized.sort((a, b) => b[1] - a[1])[0];
     if (size >= 1024) cover = { name, bytes: await entries.get(name)() };
   }
+  return { paragraphs: out, cover };
+}
+
+/* -------------------------------------------------------------------- kindle */
+
+/** Inflate with the platform: foliate-js asks for this only for embedded fonts. */
+async function unzlib(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * MOBI and KF8 (azw3), the Kindle formats. foliate-js takes the file apart
+ * and gives each section back as a document; the blocks are read the same
+ * way as an epub page.
+ */
+async function mobi(file) {
+  const { MOBI } = await import('../vendor/foliate/mobi.js');
+  const book = await new MOBI({ unzlib }).open(file);
+  const out = [];
+  for (const section of book.sections) {
+    let doc = await section.createDocument();
+    if (doc.querySelector('parsererror')) {
+      // A KF8 section that is not well-formed XHTML: read it as HTML instead.
+      doc = page(await (await fetch(await section.load())).text());
+    }
+    const body = doc.querySelector('body') ?? doc.documentElement;
+    doc.querySelectorAll('rt, rp').forEach((n) => n.remove());
+    for (const b of leafBlocks(body)) {
+      const t = b.textContent.replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+    }
+  }
+  let cover = null;
+  const blob = await book.getCover?.();
+  if (blob?.size >= 1024) cover = { name: 'cover', bytes: new Uint8Array(await blob.arrayBuffer()) };
   return { paragraphs: out, cover };
 }
 

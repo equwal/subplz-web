@@ -62,10 +62,13 @@ A single file, or **a folder of per-chapter files**: drop all 44 mp3s and they
 are merged into one chaptered file, in natural order (`9.mp3` before `10.mp3`).
 Files can arrive one drop at a time; the upload starts once both halves are in.
 
-**Book** — `epub`, `txt`, `srt`, `vtt`, `ass` directly; `fb2`, `fb2.zip`,
-`mobi`, `azw3`, `azw` and `prc` are converted on upload.
+**Book** — `epub`, `txt`, `srt`, `vtt`, `ass`, `fb2`, `fb2.zip`, and the
+Kindle formats `mobi`, `azw3`, `azw` and `prc`. In the browser every one of
+them is read in the tab (`frontend/engine/book.js`; the Kindle formats through
+[foliate-js](https://github.com/johnfactotum/foliate-js), fetched by
+`tools/fetch_vendor.py`). A server job converts the same formats on upload.
 
-Conversion delegates rather than parsing ebook formats by hand
+Conversion on the server delegates rather than parsing ebook formats by hand
 (`backend/convert.py`):
 
 | From | How |
