@@ -294,7 +294,7 @@ def test_subscription_lifts_every_limit_then_lapses(client, monthly_plan):
     assert start(client, make_job(client)).status_code == 402
 
 
-def test_subscription_past_its_paid_period_does_not_count(client):
+def test_subscription_past_its_paid_period_does_not_count(client, monthly_plan):
     acct = account_id(client)
     post_webhook(client, subscription_event("updated", acct, "active", ends_in=-3 * 86400))
     assert client.get("/api/account").json()["subscribed"] is False

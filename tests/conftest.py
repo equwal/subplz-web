@@ -46,6 +46,14 @@ def _no_real_work(monkeypatch):
     monkeypatch.setattr(api.queue, "enqueue", lambda job_id: None)
 
 
+@pytest.fixture(autouse=True)
+def _no_stripe_prices(monkeypatch):
+    """Stripe has no prices for the plans, unless a test says so. No test may
+    reach the real Stripe API."""
+    import stripe
+    monkeypatch.setattr(stripe.Price, "list", lambda **kw: FakeStripeObject({"data": []}))
+
+
 @pytest.fixture
 def client():
     """A browser: keeps its cookie, so it stays one account across requests."""

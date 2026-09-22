@@ -372,6 +372,15 @@ The books of a month do not carry over: a new `current_period_end` from Stripe
 sets `subscription_credits_used` back to 0. Retire a plan that was sold
 (`pricing.RETIRED_PLANS`); do not delete it, or its subscribers get nothing.
 
+To let customers switch plans in the portal, make the Stripe prices once:
+`runuser -u subplz -- .venv/bin/python tools/stripe_plans.py` on the server.
+It makes one monthly price for each plan, with the plan id as lookup key, and
+it is safe to run again. Then, in Stripe (Settings -> Billing -> Customer
+portal), let customers switch plans between these three products. The lookup
+key of the price names the plan, so a switch changes the plan at once, and the
+books already used this month still count. A subscription whose price names
+no plan of this site (the Stripe account also sells other products) is ignored.
+
 A server job spends the credit that ends first: the daily credit, then a book
 of this month's plan, then a free credit, then a bought one. An unlimited plan
 spends nothing. The account counts the free credits apart from the bought ones
