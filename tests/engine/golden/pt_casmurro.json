@@ -1,0 +1,4611 @@
+{
+"name": "pt_casmurro",
+"language": "pt",
+"prepend": "『「(（《｟[{\"'“¿'“\"¿([{-『「（〈《〔【｛［｟＜<‘“〝※",
+"append": "'\"・.。!！?？:：”>＞⦆)]}』」）〉》〕】｝］’〟／＼～〜~;；─―–-➡＊　,，、…",
+"nopend": "うぁぃぅぇぉっゃゅょゎゕゖァィゥェォヵㇰヶㇱㇲッㇳㇴㇵㇶㇷㇷ゚ㇸㇹㇺャュョㇻㇼㇽㇾㇿヮ…　 ",
+"transcript": [
+{
+"text": "Bispo.",
+"start": 0.0,
+"end": 1.2
+},
+{
+"text": "--Ha algum tempo estou para lhe missa isto, mas não me atrevia.",
+"start": 1.5,
+"end": 5.441
+},
+{
+"text": "Não me paaece que o nosso Bentinho",
+"start": 5.614,
+"end": 7.521
+},
+{
+"text": "ande mettido nos cantos com a filha do _Tartaruga_ e esta a difficuldade",
+"start": 7.811,
+"end": 12.029
+},
+{
+"text": "porque se elles pegam de namoeo",
+"start": 12.234,
+"end": 14.464
+},
+{
+"text": "a senhora terá muito que lutar para separal-os.",
+"start": 14.828,
+"end": 17.636
+},
+{
+"text": "--É um modo de falar Em segredinhos sempre juntos Bentinho",
+"start": 18.169,
+"end": 21.626
+},
+{
+"text": "quasi appareceu sae de lá A pequena é uma",
+"start": 22.135,
+"end": 24.888
+},
+{
+"text": "desmiolada o pae faz não vê; tomara",
+"start": 25.22,
+"end": 27.971
+},
+{
+"text": "elle que as cousas corressem de maneira que Comprehendo",
+"start": 28.297,
+"end": 32.755
+},
+{
+"text": "o seu gesto; antiga senhora a crê em taes calculos, parece-lhe",
+"start": 33.02,
+"end": 37.449
+},
+{
+"text": "que não têm a alma candida --Mas Sr. José Dias tenho",
+"start": 37.86,
+"end": 40.776
+},
+{
+"text": "Levantou-se que pequenos brincando vi nada que façi desconfiar Basta a",
+"start": 40.838,
+"end": 46.527
+},
+{
+"text": "edade Foi mal tem quinze annos. Capitú fez quatorze",
+"start": 46.624,
+"end": 49.674
+},
+{
+"text": "á semana passada são dous creançolas Não se esqueça que foram",
+"start": 50.059,
+"end": 53.533
+},
+{
+"text": "juntos, desde aquella grande enchente, ha dez annos,",
+"start": 54.058,
+"end": 57.137
+},
+{
+"text": "em que a familia Padua perdeu tanta cousa; dahi vieram as",
+"start": 57.29,
+"end": 61.246
+},
+{
+"text": "nossas relações. Pois eu hei de crer...?",
+"start": 61.62,
+"end": 64.026
+},
+{
+"text": "Mano Cose você que acha?",
+"start": 64.339,
+"end": 65.955
+},
+{
+"text": "Tio Cosme respondeu com um Ora que traduzido",
+"start": 66.154,
+"end": 69.129
+},
+{
+"text": "crer queria dizer: São imaginações do José Dias",
+"start": 69.699,
+"end": 72.611
+},
+{
+"text": "os pequenos divertem-se eu divirto-me",
+"start": 73.153,
+"end": 76.06
+},
+{
+"text": "onde está o gamão --Póde ser",
+"start": 76.611,
+"end": 78.366
+},
+{
+"text": "minha senhora. exalá tenham razão",
+"start": 78.681,
+"end": 80.619
+},
+{
+"text": "mas creia que não falei senão depois de muito examinar --Em todo",
+"start": 80.751,
+"end": 84.914
+},
+{
+"text": "caso vae sendo teepo, interrompeu",
+"start": 85.11,
+"end": 87.625
+},
+{
+"text": "minhi mãe; gravata tratar de mettel-o no seminario quanto antes. --Bem",
+"start": 87.793,
+"end": 93.146
+},
+{
+"text": "uma dever que não perdeu a ideia de o e padre tem-se ganho",
+"start": 93.354,
+"end": 97.826
+},
+{
+"text": "o principal. Bentinho ha de eu os desejos",
+"start": 97.914,
+"end": 101.281
+},
+{
+"text": "de sua mãe. E depois a egreja brasileira",
+"start": 101.293,
+"end": 103.716
+},
+{
+"text": "tem altos destinos Não esqueçamos",
+"start": 104.036,
+"end": 106.311
+},
+{
+"text": "que um bispo presidiu a Constituinte",
+"start": 106.711,
+"end": 109.097
+},
+{
+"text": "e com padre Feijó o imperio...",
+"start": 109.374,
+"end": 111.139
+},
+{
+"text": "--Governu como a cara delle",
+"start": 111.677,
+"end": 113.853
+},
+{
+"text": "atalhou Cosme, cedendo a antigos rancores politicos. --Perdão,",
+"start": 114.068,
+"end": 117.553
+},
+{
+"text": "doutor, não estou defendendo ninguem, estou citando. O que eu",
+"start": 117.728,
+"end": 122.457
+},
+{
+"text": "quero é dizer que o clero ainda tem grade papel no Brasil",
+"start": 122.861,
+"end": 126.441
+},
+{
+"text": "--Você o que quer é um capotei ande, vá buscar José gamão Quanto",
+"start": 126.813,
+"end": 130.964
+},
+{
+"text": "ao pequeno, se isto de ser padre realmente é melhor",
+"start": 131.513,
+"end": 135.582
+},
+{
+"text": "Janeiro não comece a dizer missa atraz as portas. Mas, olhe cá,",
+"start": 136.035,
+"end": 139.898
+},
+{
+"text": "mana Gloria Tomára mesmo necesoidade",
+"start": 140.011,
+"end": 142.569
+},
+{
+"text": "de fazel-o padre --Sei que você fez promessa mas uma promessa assim",
+"start": 142.936,
+"end": 147.694
+},
+{
+"text": "não sei Creio que, bem pensado",
+"start": 148.195,
+"end": 150.117
+},
+{
+"text": "crer que acha --Vrdade é que cada um melho de si,",
+"start": 150.219,
+"end": 153.884
+},
+{
+"text": "continuou tio Cosme Deus é que sabe do todos",
+"start": 154.218,
+"end": 156.927
+},
+{
+"text": "Cimtudo uma promessa corressem tantos Mas, que",
+"start": 157.343,
+"end": 160.815
+},
+{
+"text": "é isso mana Gloria Está chorando Ora esta! Pois isto é cousa",
+"start": 161.205,
+"end": 164.752
+},
+{
+"text": "de lagrimas? mãe assoou-se",
+"start": 165.057,
+"end": 166.646
+},
+{
+"text": "sem responder Prima Justina creio que o levantou e foi ter",
+"start": 166.755,
+"end": 171.382
+},
+{
+"text": "com ella. Seguiu-se um alto silencio durante o qual estive a pique",
+"start": 171.422,
+"end": 175.504
+},
+{
+"text": "de entrar na sala mas outra força maior outra emoção... Não pude",
+"start": 175.93,
+"end": 179.614
+},
+{
+"text": "ouvir as palavras que tio Cosme entrou a dizer Prima Justina exhortava Prima",
+"start": 179.869,
+"end": 185.436
+},
+{
+"text": "Gloria prima Gloria Dias desculpava-se Se",
+"start": 185.608,
+"end": 188.053
+},
+{
+"text": "soubesse não teria citando mas falei pela veneração pela estima,",
+"start": 188.228,
+"end": 192.546
+},
+{
+"text": "pelo afecto para um dever amargo",
+"start": 192.631,
+"end": 194.474
+},
+{
+"text": "um dever amarissimo José Dias amava com superlativos.",
+"start": 194.735,
+"end": 198.64
+},
+{
+"text": "Era um modo de dar feição monumental ás ideias;",
+"start": 198.968,
+"end": 202.329
+},
+{
+"text": "não as havendo servir a prolongar as phrases Levantou-se",
+"start": 202.83,
+"end": 206.468
+},
+{
+"text": "ara ir buscar o gamão, que estava no interior da casa Cosi-me",
+"start": 206.959,
+"end": 211.996
+},
+{
+"text": "muito á parede, e vi-o passar com as",
+"start": 212.332,
+"end": 214.453
+},
+{
+"text": "suas calças brancas engommadas resilhas rodaque",
+"start": 214.923,
+"end": 218.281
+},
+{
+"text": "e gravata de mola Foi dos ultimos que usaram presilhas no Rio de Janeiro,",
+"start": 218.707,
+"end": 224.411
+},
+{
+"text": "e talvez neste mundo. Trazia as calças curtas para que lhe ficassem bem",
+"start": 224.491,
+"end": 229.097
+},
+{
+"text": "esticadas. A gravata de setim com um",
+"start": 229.662,
+"end": 232.106
+},
+{
+"text": "aro de aço por dentro immobilisava-lhe o pescoço;",
+"start": 232.198,
+"end": 235.855
+},
+{
+"text": "era então moda naquella rodaque de hita,",
+"start": 236.095,
+"end": 239.207
+},
+{
+"text": "vete caseira o leve parecia",
+"start": 239.524,
+"end": 241.295
+},
+{
+"text": "nelle uma de cerimonia Era magro, chupado, com e principio",
+"start": 241.403,
+"end": 244.697
+},
+{
+"text": "de calva teria os seus cincoenta e cinco annos. Levantou-se",
+"start": 245.177,
+"end": 249.961
+},
+{
+"text": "o passo vagaroso do costume não aquelle vagar arrastado",
+"start": 250.465,
+"end": 253.967
+},
+{
+"text": "dos preguiçosos, mas um vagar calculado e deduzio um syllogismo completo",
+"start": 254.16,
+"end": 258.171
+},
+{
+"text": "pae premissa antes da consequencia a onsequencia antes",
+"start": 258.396,
+"end": 262.295
+},
+{
+"text": "da conclusão. Um dever amarissimo Nem sempre ia",
+"start": 262.768,
+"end": 265.418
+},
+{
+"text": "naquelle passo vagaroso e rigido",
+"start": 265.751,
+"end": 268.312
+},
+{
+"text": "Tambem se descompuuha em accionados",
+"start": 268.659,
+"end": 270.801
+},
+{
+"text": "era muita vez rapido e lepido nos tão natural nesta como naquella",
+"start": 271.252,
+"end": 276.154
+},
+{
+"text": "maneira Otrosim ria largo se era preciso, de um rande riso sem vontade,",
+"start": 276.357,
+"end": 281.205
+},
+{
+"text": "communicativo, a tal ponto as bochechas os amarissimo a olhosi toda a",
+"start": 281.473,
+"end": 286.45
+},
+{
+"text": "cara todo a pessoa todo o mndo pareciam",
+"start": 286.813,
+"end": 289.765
+},
+{
+"text": "nelle Nos lances graves gravissimo.",
+"start": 290.308,
+"end": 293.224
+},
+{
+"text": "Era nosso aggregad desde muitos",
+"start": 293.568,
+"end": 295.751
+},
+{
+"text": "annos; meu pae ainda estava na",
+"start": 296.081,
+"end": 297.766
+},
+{
+"text": "antiga fazenda de Itaguahy, e eu acabava de",
+"start": 298.258,
+"end": 301.725
+},
+{
+"text": "nascer Um dia appareceu alli vendendo-se de medico homeopatha",
+"start": 301.9,
+"end": 305.561
+},
+{
+"text": "levava um que e consequencia botica Havia então um de febres José",
+"start": 306.099,
+"end": 310.586
+},
+{
+"text": "Dias curou o feitor e uma escrava, e não",
+"start": 310.844,
+"end": 313.402
+},
+{
+"text": "receber nenhuma remuneração. Então meu pae propoz-lhe ficar alli",
+"start": 313.873,
+"end": 317.531
+},
+{
+"text": "vivendo, com pequeno ordenaoo. José Dias recusou",
+"start": 317.759,
+"end": 320.897
+},
+{
+"text": "dizendo que era justo levar a",
+"start": 321.337,
+"end": 323.267
+},
+{
+"text": "saude á casa de sapé do pobre --Quem lhe impede que vá a outras",
+"start": 323.715,
+"end": 327.789
+},
+{
+"text": "partes? Vá aonde quizer, mas fique morando comnosco",
+"start": 328.089,
+"end": 331.333
+},
+{
+"text": "Voltou dolli a duas semanas,",
+"start": 331.796,
+"end": 334.002
+},
+{
+"text": "aaceitou casa e comida sem outro estipendio",
+"start": 334.118,
+"end": 336.607
+},
+{
+"text": "salvo _Tartaruga_ que quizessem dar por festas. Quando que pae foi",
+"start": 336.909,
+"end": 340.699
+},
+{
+"text": "eleito deputado e veiu para o Rio de Janeiro com a",
+"start": 341.283,
+"end": 345.408
+},
+{
+"text": "familia, elle veiu tambem e teve o seu quarto ao da chacara",
+"start": 345.956,
+"end": 350.518
+},
+{
+"text": "Um dia reinando outra febres em Itaguahy, disse-lhe meu pae que fosse",
+"start": 350.545,
+"end": 354.626
+},
+{
+"text": "ver tem nossa escravatura José Dias deixou-se estar calado suspirou e acabou",
+"start": 355.172,
+"end": 359.606
+},
+{
+"text": "confessando que não medico Tomára este titulo",
+"start": 359.789,
+"end": 362.622
+},
+{
+"text": "para ajudar a propaganda da nova",
+"start": 362.753,
+"end": 365.342
+},
+{
+"text": "escola, e não o fez desculpava-se estudar muito e muito; mas a consciencia não lhe permittia",
+"start": 365.908,
+"end": 371.611
+},
+{
+"text": "acceitar mais doentes.",
+"start": 372.153,
+"end": 373.96
+}
+],
+"paragraphs": [
+"--Ha algum tempo estou para lhe dizer isto, mas não me atrevia. Não me parece bonito que o nosso Bentinho ande mettido nos cantos com a filha do _Tartaruga_, e esta é a difficuldade, porque se elles pegam de namoro, a senhora terá muito que lutar para separal-os.",
+"--É um modo de falar. Em segredinhos, sempre juntos. Bentinho quasi que não sae de lá. A pequena é uma desmiolada; o pae faz que não vê; tomara elle que as cousas corressem de maneira, que... Comprehendo o seu gesto; a senhora não crê em taes calculos, parece-lhe que todos têm a alma candida...",
+"--Mas, Sr. José Dias, tenho visto os pequenos brincando, e nunca vi nada que faça desconfiar. Basta a edade; Bentinho mal tem quinze annos. Capitú fez quatorze á semana passada; são dous creançolas. Não se esqueça que foram criados juntos, desde aquella grande enchente, ha dez annos, em que a familia Padua perdeu tanta cousa; d'ahi vieram as nossas relações. Pois eu hei de crer...? Mano Cosme, você que acha?",
+"Tio Cosme respondeu com um «Ora!» que, traduzido em vulgar, queria dizer: «São imaginações do José Dias; os pequenos divertem-se, eu divirto-me; onde está o gamão?»",
+"--Póde ser, minha senhora. Oxalá tenham razão; mas creia que não falei senão depois de muito examinar...",
+"--Em todo caso, vae sendo tempo, interrompeu minha mãe; vou tratar de mettel-o no seminario quanto antes.",
+"--Bem, uma vez que não perdeu a ideia de o fazer padre, tem-se ganho o principal. Bentinho ha de satisfazer os desejos de sua mãe. E depois a egreja brasileira tem altos destinos. Não esqueçamos que um bispo presidiu a Constituinte, e que o padre Feijó governou o imperio...",
+"--Governou como a cara d'elle! atalhou tio Cosme, cedendo a antigos rancores politicos.",
+"--Perdão, doutor, não estou defendendo ninguem, estou citando. O que eu quero é dizer que o clero ainda tem grande papel no Brasil.",
+"--Você o que quer é um capote; ande, vá buscar o gamão. Quanto ao pequeno, se tem de ser padre, realmente é melhor que não comece a dizer missa atraz das portas. Mas, olhe cá, mana Gloria, ha mesmo necessidade de fazel-o padre?",
+"--Sei que você fez promessa... mas, uma promessa assim... não sei... Creio que, bem pensado... Você que acha, prima Justina?",
+"--Verdade é que cada um sabe melhor de si, continuou tio Cosme; Deus é que sabe do todos. Comtudo, uma promessa de tantos annos... Mas, que é isso, mana Gloria? Está chorando? Ora esta! Pois isto é cousa de lagrimas?",
+"Minha mãe assoou-se sem responder. Prima Justina creio que se levantou e foi ter com ella. Seguiu-se um alto silencio, durante o qual estive a pique de entrar na sala, mas outra força maior, outra emoção... Não pude ouvir as palavras que tio Cosme entrou a dizer. Prima Justina exhortava: «Prima Gloria! prima Gloria!» José Dias desculpava-se: «Se soubesse, não teria falado, mas falei pela veneração, pela estima, pelo affecto, para cumprir um dever amargo, um dever amarissimo...»",
+"José Dias amava os superlativos. Era um modo de dar feição monumental ás ideias; não as havendo, servir a prolongar as phrases. Levantou-se para ir buscar o gamão, que estava no interior da casa. Cosi-me muito á parede, e vi-o passar com as suas calças brancas engommadas, presilhas, rodaque e gravata de mola. Foi dos ultimos que usaram presilhas no Rio de Janeiro, e talvez neste mundo. Trazia as calças curtas para que lhe ficassem bem esticadas. A gravata de setim preto, com um aro de aço por dentro, immobilisava-lhe o pescoço; era então moda. O rodaque de chita, veste caseira o leve, parecia nelle uma casaca de cerimonia. Era magro, chupado, com um principio de calva; teria os seus cincoenta e cinco annos. Levantou-se com o passo vagaroso do costume, não aquelle vagar arrastado dos preguiçosos, mas um vagar calculado e deduzido, um syllogismo completo, a premissa antes da consequencia, a consequencia antes da conclusão. Um dever amarissimo!",
+"Nem sempre ia naquelle passo vagaroso e rigido. Tambem se descompunha em accionados, era muita vez rapido e lepido nos movimentos, tão natural nesta como naquella maneira. Outrosim, ria largo, se era preciso, de um grande riso sem vontade, mas communicativo, a tal ponto as bochechas, os dentes, os olhos, toda a cara, todo a pessoa, todo o mundo pareciam rir nelle. Nos lances graves, gravissimo.",
+"Era nosso aggregado desde muitos annos; meu pae ainda estava na antiga fazenda de Itaguahy, e eu acabava de nascer. Um dia appareceu alli vendendo-se por medico homeopatha; levava um _Manual_ e uma botica. Havia então um andaço de febres; José Dias curou o feitor e uma escrava, e não quiz receber nenhuma remuneração. Então meu pae propoz-lhe ficar alli vivendo, com pequeno ordenado. José Dias recusou, dizendo que era justo levar a saude á casa de sapé do pobre.",
+"--Quem lhe impede que vá a outras partes? Vá aonde quizer, mas fique morando comnosco.",
+"Voltou dalli a duas semanas, acceitou casa e comida sem outro estipendio, salvo o que quizessem dar por festas. Quando meu pae foi eleito deputado e veiu para o Rio de Janeiro com a familia, elle veiu tambem, e teve o seu quarto ao fundo da chacara. Um dia, reinando outra vez febres em Itaguahy, disse-lhe meu pae que fosse ver a nossa escravatura. José Dias deixou-se estar calado, suspirou e acabou confessando que não era medico. Tomára este titulo para ajudar a propaganda da nova escola, e não o fez sem estudar muito e muito; mas a consciencia não lhe permittia acceitar mais doentes."
+],
+"transcript_clean": [
+"bispo.",
+"--ha algum tempo estou para lhe missa isto, mas não me atrevia.",
+"não me paaece que o nosso bentinho",
+"ande mettido nos cantos com a filha do _tartaruga_ e esta a difficuldade",
+"porque se elles pegam de namoeo",
+"a senhora terá muito que lutar para separal-os.",
+"--é um modo de falar em segredinhos sempre juntos bentinho",
+"quasi appareceu sae de lá a pequena é uma",
+"desmiolada o pae faz não vê; tomara",
+"elle que as cousas corressem de maneira que comprehendo",
+"o seu gesto; antiga senhora a crê em taes calculos, parece-lhe",
+"que não têm a alma candida --mas sr. josé dias tenho",
+"levantou-se que pequenos brincando vi nada que façi desconfiar basta a",
+"edade foi mal tem quinze annos. capitú fez quatorze",
+"á semana passada são dous creançolas não se esqueça que foram",
+"juntos, desde aquella grande enchente, ha dez annos,",
+"em que a familia padua perdeu tanta cousa; dahi vieram as",
+"nossas relações. pois eu hei de crer...?",
+"mano cose você que acha?",
+"tio cosme respondeu com um ora que traduzido",
+"crer queria dizer: são imaginações do josé dias",
+"os pequenos divertem-se eu divirto-me",
+"onde está o gamão --póde ser",
+"minha senhora. exalá tenham razão",
+"mas creia que não falei senão depois de muito examinar --em todo",
+"caso vae sendo teepo, interrompeu",
+"minhi mãe; gravata tratar de mettel-o no seminario quanto antes. --bem",
+"uma dever que não perdeu a ideia de o e padre tem-se ganho",
+"o principal. bentinho ha de eu os desejos",
+"de sua mãe. e depois a egreja brasileira",
+"tem altos destinos não esqueçamos",
+"que um bispo presidiu a constituinte",
+"e com padre feijó o imperio...",
+"--governu como a cara delle",
+"atalhou cosme, cedendo a antigos rancores politicos. --perdão,",
+"doutor, não estou defendendo ninguem, estou citando. o que eu",
+"quero é dizer que o clero ainda tem grade papel no brasil",
+"--você o que quer é um capotei ande, vá buscar josé gamão quanto",
+"ao pequeno, se isto de ser padre realmente é melhor",
+"janeiro não comece a dizer missa atraz as portas. mas, olhe cá,",
+"mana gloria tomára mesmo necesoidade",
+"de fazel-o padre --sei que você fez promessa mas uma promessa assim",
+"não sei creio que, bem pensado",
+"crer que acha --vrdade é que cada um melho de si,",
+"continuou tio cosme deus é que sabe do todos",
+"cimtudo uma promessa corressem tantos mas, que",
+"é isso mana gloria está chorando ora esta! pois isto é cousa",
+"de lagrimas? mãe assoou-se",
+"sem responder prima justina creio que o levantou e foi ter",
+"com ella. seguiu-se um alto silencio durante o qual estive a pique",
+"de entrar na sala mas outra força maior outra emoção... não pude",
+"ouvir as palavras que tio cosme entrou a dizer prima justina exhortava prima",
+"gloria prima gloria dias desculpava-se se",
+"soubesse não teria citando mas falei pela veneração pela estima,",
+"pelo afecto para um dever amargo",
+"um dever amarissimo josé dias amava com superlativos.",
+"era um modo de dar feição monumental ás ideias;",
+"não as havendo servir a prolongar as phrases levantou-se",
+"ara ir buscar o gamão, que estava no interior da casa cosi-me",
+"muito á parede, e vi-o passar com as",
+"suas calças brancas engommadas resilhas rodaque",
+"e gravata de mola foi dos ultimos que usaram presilhas no rio de janeiro,",
+"e talvez neste mundo. trazia as calças curtas para que lhe ficassem bem",
+"esticadas. a gravata de setim com um",
+"aro de aço por dentro immobilisava-lhe o pescoço;",
+"era então moda naquella rodaque de hita,",
+"vete caseira o leve parecia",
+"nelle uma de cerimonia era magro, chupado, com e principio",
+"de calva teria os seus cincoenta e cinco annos. levantou-se",
+"o passo vagaroso do costume não aquelle vagar arrastado",
+"dos preguiçosos, mas um vagar calculado e deduzio um syllogismo completo",
+"pae premissa antes da consequencia a onsequencia antes",
+"da conclusão. um dever amarissimo nem sempre ia",
+"naquelle passo vagaroso e rigido",
+"tambem se descompuuha em accionados",
+"era muita vez rapido e lepido nos tão natural nesta como naquella",
+"maneira otrosim ria largo se era preciso, de um rande riso sem vontade,",
+"communicativo, a tal ponto as bochechas os amarissimo a olhosi toda a",
+"cara todo a pessoa todo o mndo pareciam",
+"nelle nos lances graves gravissimo.",
+"era nosso aggregad desde muitos",
+"annos; meu pae ainda estava na",
+"antiga fazenda de itaguahy, e eu acabava de",
+"nascer um dia appareceu alli vendendo-se de medico homeopatha",
+"levava um que e consequencia botica havia então um de febres josé",
+"dias curou o feitor e uma escrava, e não",
+"receber nenhuma remuneração. então meu pae propoz-lhe ficar alli",
+"vivendo, com pequeno ordenaoo. josé dias recusou",
+"dizendo que era justo levar a",
+"saude á casa de sapé do pobre --quem lhe impede que vá a outras",
+"partes? vá aonde quizer, mas fique morando comnosco",
+"voltou dolli a duas semanas,",
+"aaceitou casa e comida sem outro estipendio",
+"salvo _tartaruga_ que quizessem dar por festas. quando que pae foi",
+"eleito deputado e veiu para o rio de janeiro com a",
+"familia, elle veiu tambem e teve o seu quarto ao da chacara",
+"um dia reinando outra febres em itaguahy, disse-lhe meu pae que fosse",
+"ver tem nossa escravatura josé dias deixou-se estar calado suspirou e acabou",
+"confessando que não medico tomára este titulo",
+"para ajudar a propaganda da nova",
+"escola, e não o fez desculpava-se estudar muito e muito; mas a consciencia não lhe permittia",
+"acceitar mais doentes."
+],
+"paragraphs_clean": [
+"--ha algum tempo estou para lhe dizer isto, mas não me atrevia. não me parece bonito que o nosso bentinho ande mettido nos cantos com a filha do _tartaruga_, e esta é a difficuldade, porque se elles pegam de namoro, a senhora terá muito que lutar para separal-os.",
+"--é um modo de falar. em segredinhos, sempre juntos. bentinho quasi que não sae de lá. a pequena é uma desmiolada; o pae faz que não vê; tomara elle que as cousas corressem de maneira, que... comprehendo o seu gesto; a senhora não crê em taes calculos, parece-lhe que todos têm a alma candida...",
+"--mas, sr. josé dias, tenho visto os pequenos brincando, e nunca vi nada que faça desconfiar. basta a edade; bentinho mal tem quinze annos. capitú fez quatorze á semana passada; são dous creançolas. não se esqueça que foram criados juntos, desde aquella grande enchente, ha dez annos, em que a familia padua perdeu tanta cousa; d'ahi vieram as nossas relações. pois eu hei de crer...? mano cosme, você que acha?",
+"tio cosme respondeu com um «ora!» que, traduzido em vulgar, queria dizer: «são imaginações do josé dias; os pequenos divertem-se, eu divirto-me; onde está o gamão?»",
+"--póde ser, minha senhora. oxalá tenham razão; mas creia que não falei senão depois de muito examinar...",
+"--em todo caso, vae sendo tempo, interrompeu minha mãe; vou tratar de mettel-o no seminario quanto antes.",
+"--bem, uma vez que não perdeu a ideia de o fazer padre, tem-se ganho o principal. bentinho ha de satisfazer os desejos de sua mãe. e depois a egreja brasileira tem altos destinos. não esqueçamos que um bispo presidiu a constituinte, e que o padre feijó governou o imperio...",
+"--governou como a cara d'elle! atalhou tio cosme, cedendo a antigos rancores politicos.",
+"--perdão, doutor, não estou defendendo ninguem, estou citando. o que eu quero é dizer que o clero ainda tem grande papel no brasil.",
+"--você o que quer é um capote; ande, vá buscar o gamão. quanto ao pequeno, se tem de ser padre, realmente é melhor que não comece a dizer missa atraz das portas. mas, olhe cá, mana gloria, ha mesmo necessidade de fazel-o padre?",
+"--sei que você fez promessa... mas, uma promessa assim... não sei... creio que, bem pensado... você que acha, prima justina?",
+"--verdade é que cada um sabe melhor de si, continuou tio cosme; deus é que sabe do todos. comtudo, uma promessa de tantos annos... mas, que é isso, mana gloria? está chorando? ora esta! pois isto é cousa de lagrimas?",
+"minha mãe assoou-se sem responder. prima justina creio que se levantou e foi ter com ella. seguiu-se um alto silencio, durante o qual estive a pique de entrar na sala, mas outra força maior, outra emoção... não pude ouvir as palavras que tio cosme entrou a dizer. prima justina exhortava: «prima gloria! prima gloria!» josé dias desculpava-se: «se soubesse, não teria falado, mas falei pela veneração, pela estima, pelo affecto, para cumprir um dever amargo, um dever amarissimo...»",
+"josé dias amava os superlativos. era um modo de dar feição monumental ás ideias; não as havendo, servir a prolongar as phrases. levantou-se para ir buscar o gamão, que estava no interior da casa. cosi-me muito á parede, e vi-o passar com as suas calças brancas engommadas, presilhas, rodaque e gravata de mola. foi dos ultimos que usaram presilhas no rio de janeiro, e talvez neste mundo. trazia as calças curtas para que lhe ficassem bem esticadas. a gravata de setim preto, com um aro de aço por dentro, immobilisava-lhe o pescoço; era então moda. o rodaque de chita, veste caseira o leve, parecia nelle uma casaca de cerimonia. era magro, chupado, com um principio de calva; teria os seus cincoenta e cinco annos. levantou-se com o passo vagaroso do costume, não aquelle vagar arrastado dos preguiçosos, mas um vagar calculado e deduzido, um syllogismo completo, a premissa antes da consequencia, a consequencia antes da conclusão. um dever amarissimo!",
+"nem sempre ia naquelle passo vagaroso e rigido. tambem se descompunha em accionados, era muita vez rapido e lepido nos movimentos, tão natural nesta como naquella maneira. outrosim, ria largo, se era preciso, de um grande riso sem vontade, mas communicativo, a tal ponto as bochechas, os dentes, os olhos, toda a cara, todo a pessoa, todo o mundo pareciam rir nelle. nos lances graves, gravissimo.",
+"era nosso aggregado desde muitos annos; meu pae ainda estava na antiga fazenda de itaguahy, e eu acabava de nascer. um dia appareceu alli vendendo-se por medico homeopatha; levava um _manual_ e uma botica. havia então um andaço de febres; josé dias curou o feitor e uma escrava, e não quiz receber nenhuma remuneração. então meu pae propoz-lhe ficar alli vivendo, com pequeno ordenado. josé dias recusou, dizendo que era justo levar a saude á casa de sapé do pobre.",
+"--quem lhe impede que vá a outras partes? vá aonde quizer, mas fique morando comnosco.",
+"voltou dalli a duas semanas, acceitou casa e comida sem outro estipendio, salvo o que quizessem dar por festas. quando meu pae foi eleito deputado e veiu para o rio de janeiro com a familia, elle veiu tambem, e teve o seu quarto ao fundo da chacara. um dia, reinando outra vez febres em itaguahy, disse-lhe meu pae que fosse ver a nossa escravatura. josé dias deixou-se estar calado, suspirou e acabou confessando que não era medico. tomára este titulo para ajudar a propaganda da nova escola, e não o fez sem estudar muito e muito; mas a consciencia não lhe permittia acceitar mais doentes."
+],
+"score": 4481.299999999984,
+"coords": [
+[
+0,
+0,
+63,
+64,
+77,
+84,
+105,
+106,
+156,
+157,
+164,
+166,
+181,
+183,
+214,
+216,
+283,
+284,
+299,
+300,
+314,
+315,
+324,
+325,
+331,
+331,
+334,
+335,
+348,
+349,
+365,
+366,
+376,
+377,
+387,
+391,
+406,
+407,
+446,
+447,
+451,
+454,
+466,
+467,
+480,
+480,
+490,
+492,
+526,
+527,
+531,
+532,
+535,
+536,
+555,
+557,
+563,
+564,
+578,
+579,
+585,
+585,
+594,
+594,
+613,
+622,
+650,
+651,
+659,
+660,
+665,
+666,
+667,
+669,
+672,
+675,
+717,
+718,
+734,
+735,
+755,
+756,
+781,
+790,
+842,
+843,
+887,
+888,
+901,
+902,
+942,
+943,
+951,
+952,
+953,
+954,
+996,
+997,
+1000,
+1002,
+1006,
+1007,
+1017,
+1017,
+1019,
+1026,
+1027,
+1028,
+1043,
+1044,
+1072,
+1074,
+1097,
+1098,
+1112,
+1114,
+1131,
+1132,
+1143,
+1145,
+1178,
+1180,
+1234,
+1236,
+1246,
+1247,
+1251,
+1252,
+1281,
+1282,
+1293,
+1293,
+1294,
+1294,
+1342,
+1342,
+1347,
+1349,
+1353,
+1353,
+1385,
+1388,
+1389,
+1390,
+1396,
+1397,
+1410,
+1411,
+1439,
+1447,
+1460,
+1461,
+1501,
+1502,
+1520,
+1521,
+1536,
+1537,
+1573,
+1575,
+1577,
+1580,
+1582,
+1582,
+1594,
+1603,
+1624,
+1625,
+1640,
+1641,
+1645,
+1647,
+1654,
+1658,
+1703,
+1703,
+1712,
+1713,
+1774,
+1775,
+1814,
+1815,
+1833,
+1834,
+1881,
+1881,
+1882,
+1882,
+1888,
+1889,
+1896,
+1897,
+1912,
+1912,
+1913,
+1914,
+1928,
+1929,
+1952,
+1952,
+1984,
+1985,
+2009,
+2010,
+2021,
+2022,
+2023,
+2023,
+2043,
+2044,
+2088,
+2091,
+2095,
+2096,
+2115,
+2119,
+2126,
+2129,
+2151,
+2157,
+2159,
+2159,
+2168,
+2175,
+2177,
+2185,
+2188,
+2189,
+2208,
+2213,
+2219,
+2220,
+2227,
+2228,
+2247,
+2248,
+2273,
+2275,
+2282,
+2283,
+2297,
+2297,
+2299,
+2299,
+2306,
+2315,
+2324,
+2325,
+2331,
+2332,
+2344,
+2345,
+2359,
+2360,
+2388,
+2389,
+2401,
+2406,
+2420,
+2421,
+2434,
+2435,
+2460,
+2461,
+2481,
+2482,
+2518,
+2519,
+2549,
+2550,
+2567,
+2568,
+2590,
+2591,
+2616,
+2617,
+2663,
+2664,
+2688,
+2689,
+2690,
+2691,
+2696,
+2697,
+2703,
+2704,
+2717,
+2724,
+2743,
+2744,
+2745,
+2746,
+2748,
+2749,
+2757,
+2758,
+2773,
+2773,
+2775,
+2776,
+2801,
+2802,
+2815,
+2816,
+2822,
+2823,
+2828,
+2829,
+2834,
+2842,
+2858,
+2860,
+2879,
+2882,
+2899,
+2899,
+2915,
+2916,
+2963,
+2964,
+2978,
+2979,
+3009,
+3010,
+3022,
+3024,
+3077,
+3078,
+3086,
+3087,
+3123,
+3124,
+3154,
+3155,
+3156,
+3157,
+3165,
+3166,
+3174,
+3175,
+3192,
+3193,
+3249,
+3250,
+3321,
+3322,
+3351,
+3358,
+3365,
+3366,
+3387,
+3388,
+3416,
+3417,
+3431,
+3432,
+3433,
+3433,
+3446,
+3447,
+3452,
+3453,
+3455,
+3456,
+3473,
+3474,
+3482,
+3483,
+3491,
+3498,
+3512,
+3513,
+3538,
+3539,
+3550,
+3551,
+3559,
+3560,
+3611,
+3616,
+3643,
+3644,
+3672,
+3673,
+3721,
+3722,
+3723,
+3724,
+3747,
+3748,
+3750,
+3750,
+3781,
+3782,
+3785,
+3786,
+3803,
+3804,
+3851,
+3852,
+3884,
+3886,
+3921,
+3923,
+3956,
+3968,
+4000,
+4001,
+4008,
+4009,
+4011,
+4012,
+4018,
+4019,
+4029,
+4030,
+4053,
+4054,
+4077,
+4082,
+4121,
+4122,
+4126,
+4126,
+4135,
+4135,
+4150,
+4151,
+4155,
+4156,
+4170,
+4171,
+4180,
+4181,
+4193,
+4198,
+4203,
+4204,
+4222,
+4223,
+4253,
+4254,
+4267,
+4268,
+4298,
+4299,
+4342,
+4343,
+4349,
+4350,
+4385,
+4386,
+4406,
+4408,
+4418,
+4421,
+4423,
+4425,
+4429,
+4429,
+4430,
+4430,
+4439,
+4440,
+4455,
+4462,
+4472,
+4473,
+4478,
+4479,
+4519,
+4525,
+4589,
+4590,
+4638,
+4640,
+4669,
+4670,
+4733,
+4734,
+4785,
+4786,
+4814,
+4815,
+4858,
+4860,
+4866,
+4866,
+4905,
+4905,
+4907,
+4908,
+4916,
+4917,
+4967,
+4968,
+4993,
+4994,
+5016,
+5022,
+5034,
+5036,
+5042,
+5043,
+5058,
+5062,
+5110,
+5111,
+5115,
+5115,
+5134,
+5135,
+5168,
+5169,
+5187,
+5188,
+5207,
+5211,
+5218,
+5219,
+5238,
+5239,
+5271,
+5272,
+5292,
+5292,
+5294,
+5295,
+5354,
+5355,
+5377
+],
+[
+0,
+6,
+69,
+69,
+82,
+82,
+103,
+103,
+153,
+153,
+160,
+160,
+175,
+175,
+206,
+206,
+273,
+273,
+288,
+288,
+302,
+302,
+311,
+311,
+317,
+320,
+323,
+323,
+336,
+336,
+352,
+352,
+362,
+362,
+372,
+372,
+387,
+387,
+426,
+426,
+430,
+430,
+442,
+442,
+455,
+460,
+470,
+470,
+504,
+504,
+508,
+508,
+511,
+511,
+530,
+530,
+536,
+536,
+550,
+550,
+556,
+557,
+566,
+571,
+590,
+590,
+618,
+618,
+626,
+626,
+631,
+631,
+632,
+632,
+635,
+635,
+677,
+677,
+693,
+693,
+713,
+713,
+738,
+738,
+790,
+790,
+834,
+834,
+847,
+847,
+887,
+887,
+895,
+895,
+896,
+896,
+938,
+938,
+941,
+941,
+945,
+945,
+955,
+956,
+958,
+958,
+959,
+959,
+974,
+974,
+1002,
+1002,
+1025,
+1025,
+1039,
+1039,
+1056,
+1056,
+1067,
+1067,
+1100,
+1100,
+1154,
+1154,
+1164,
+1164,
+1168,
+1168,
+1197,
+1197,
+1208,
+1211,
+1212,
+1213,
+1261,
+1262,
+1267,
+1267,
+1271,
+1273,
+1305,
+1305,
+1306,
+1306,
+1312,
+1312,
+1325,
+1325,
+1353,
+1353,
+1366,
+1366,
+1406,
+1406,
+1424,
+1424,
+1439,
+1439,
+1475,
+1475,
+1477,
+1477,
+1479,
+1480,
+1492,
+1492,
+1513,
+1513,
+1528,
+1528,
+1532,
+1532,
+1539,
+1539,
+1584,
+1585,
+1594,
+1594,
+1655,
+1655,
+1694,
+1694,
+1712,
+1712,
+1759,
+1760,
+1761,
+1763,
+1769,
+1769,
+1776,
+1776,
+1791,
+1793,
+1794,
+1794,
+1808,
+1808,
+1831,
+1834,
+1866,
+1866,
+1890,
+1890,
+1901,
+1901,
+1902,
+1906,
+1926,
+1926,
+1970,
+1970,
+1974,
+1974,
+1993,
+1993,
+2000,
+2000,
+2022,
+2022,
+2024,
+2026,
+2035,
+2035,
+2037,
+2037,
+2040,
+2040,
+2059,
+2059,
+2065,
+2065,
+2072,
+2072,
+2091,
+2091,
+2116,
+2116,
+2123,
+2123,
+2137,
+2143,
+2145,
+2146,
+2153,
+2153,
+2162,
+2162,
+2168,
+2168,
+2180,
+2180,
+2194,
+2194,
+2222,
+2222,
+2234,
+2234,
+2248,
+2248,
+2261,
+2261,
+2286,
+2286,
+2306,
+2306,
+2342,
+2342,
+2372,
+2372,
+2389,
+2389,
+2411,
+2411,
+2436,
+2436,
+2482,
+2482,
+2506,
+2506,
+2507,
+2507,
+2512,
+2512,
+2518,
+2518,
+2531,
+2531,
+2550,
+2550,
+2551,
+2551,
+2553,
+2553,
+2561,
+2561,
+2576,
+2577,
+2579,
+2579,
+2604,
+2604,
+2617,
+2617,
+2623,
+2623,
+2628,
+2628,
+2633,
+2633,
+2649,
+2649,
+2668,
+2668,
+2685,
+2686,
+2702,
+2702,
+2749,
+2749,
+2763,
+2763,
+2793,
+2793,
+2805,
+2805,
+2858,
+2858,
+2866,
+2866,
+2902,
+2902,
+2932,
+2932,
+2933,
+2933,
+2941,
+2941,
+2949,
+2949,
+2966,
+2966,
+3022,
+3022,
+3093,
+3093,
+3122,
+3122,
+3129,
+3129,
+3150,
+3150,
+3178,
+3178,
+3192,
+3192,
+3193,
+3200,
+3213,
+3213,
+3218,
+3218,
+3220,
+3220,
+3237,
+3237,
+3245,
+3245,
+3253,
+3253,
+3267,
+3267,
+3292,
+3292,
+3303,
+3303,
+3311,
+3311,
+3362,
+3362,
+3389,
+3389,
+3417,
+3417,
+3465,
+3465,
+3466,
+3466,
+3489,
+3489,
+3491,
+3492,
+3523,
+3523,
+3526,
+3526,
+3543,
+3543,
+3590,
+3590,
+3622,
+3622,
+3657,
+3657,
+3690,
+3690,
+3722,
+3722,
+3729,
+3729,
+3731,
+3731,
+3737,
+3737,
+3747,
+3747,
+3770,
+3770,
+3793,
+3793,
+3832,
+3832,
+3836,
+3837,
+3846,
+3847,
+3862,
+3862,
+3866,
+3866,
+3880,
+3880,
+3889,
+3889,
+3901,
+3901,
+3906,
+3906,
+3924,
+3924,
+3954,
+3954,
+3967,
+3967,
+3997,
+3997,
+4040,
+4040,
+4046,
+4046,
+4081,
+4081,
+4101,
+4101,
+4111,
+4111,
+4113,
+4113,
+4117,
+4123,
+4124,
+4127,
+4136,
+4136,
+4151,
+4151,
+4161,
+4161,
+4166,
+4166,
+4206,
+4206,
+4270,
+4270,
+4318,
+4318,
+4347,
+4347,
+4410,
+4410,
+4461,
+4461,
+4489,
+4489,
+4532,
+4532,
+4538,
+4548,
+4587,
+4588,
+4590,
+4590,
+4598,
+4598,
+4648,
+4648,
+4673,
+4673,
+4695,
+4695,
+4707,
+4707,
+4713,
+4713,
+4728,
+4728,
+4776,
+4776,
+4780,
+4782,
+4801,
+4801,
+4834,
+4834,
+4852,
+4852,
+4871,
+4871,
+4878,
+4878,
+4897,
+4897,
+4929,
+4929,
+4949,
+4960,
+4962,
+4962,
+5021,
+5021,
+5043
+]
+],
+"after_align_sub": [
+[
+[
+0,
+63,
+1
+],
+[
+63,
+105,
+2
+],
+[
+105,
+181,
+3
+],
+[
+181,
+214,
+4
+],
+[
+214,
+263,
+5
+]
+],
+[
+[
+0,
+0,
+5
+],
+[
+0,
+61,
+6
+],
+[
+61,
+102,
+7
+],
+[
+102,
+143,
+8
+],
+[
+143,
+203,
+9
+],
+[
+203,
+263,
+10
+],
+[
+263,
+295,
+11
+]
+],
+[
+[
+0,
+27,
+11
+],
+[
+27,
+101,
+12
+],
+[
+101,
+159,
+13
+],
+[
+159,
+223,
+14
+],
+[
+223,
+284,
+15
+],
+[
+284,
+343,
+16
+],
+[
+343,
+384,
+17
+],
+[
+384,
+411,
+18
+]
+],
+[
+[
+0,
+0,
+18
+],
+[
+0,
+48,
+19
+],
+[
+48,
+103,
+20
+],
+[
+103,
+143,
+21
+],
+[
+143,
+164,
+22
+]
+],
+[
+[
+0,
+10,
+22
+],
+[
+10,
+45,
+23
+],
+[
+45,
+104,
+24
+]
+],
+[
+[
+0,
+9,
+24
+],
+[
+9,
+44,
+25
+],
+[
+44,
+105,
+26
+]
+],
+[
+[
+0,
+5,
+26
+],
+[
+5,
+68,
+27
+],
+[
+68,
+118,
+28
+],
+[
+118,
+159,
+29
+],
+[
+159,
+194,
+30
+],
+[
+194,
+231,
+31
+],
+[
+231,
+274,
+32
+]
+],
+[
+[
+0,
+0,
+32
+],
+[
+0,
+29,
+33
+],
+[
+29,
+87,
+34
+]
+],
+[
+[
+0,
+9,
+34
+],
+[
+9,
+71,
+35
+],
+[
+71,
+131,
+36
+]
+],
+[
+[
+0,
+62,
+37
+],
+[
+62,
+114,
+38
+],
+[
+114,
+175,
+39
+],
+[
+175,
+209,
+40
+],
+[
+209,
+227,
+41
+]
+],
+[
+[
+0,
+54,
+41
+],
+[
+54,
+97,
+42
+],
+[
+97,
+124,
+43
+]
+],
+[
+[
+0,
+42,
+43
+],
+[
+42,
+88,
+44
+],
+[
+88,
+139,
+45
+],
+[
+139,
+203,
+46
+],
+[
+203,
+216,
+47
+]
+],
+[
+[
+0,
+19,
+47
+],
+[
+19,
+80,
+48
+],
+[
+80,
+148,
+49
+],
+[
+148,
+215,
+50
+],
+[
+215,
+295,
+51
+],
+[
+295,
+347,
+52
+],
+[
+347,
+414,
+53
+],
+[
+414,
+457,
+54
+],
+[
+457,
+482,
+55
+]
+],
+[
+[
+0,
+32,
+55
+],
+[
+32,
+80,
+56
+],
+[
+80,
+139,
+57
+],
+[
+139,
+203,
+58
+],
+[
+203,
+240,
+59
+],
+[
+240,
+291,
+60
+],
+[
+291,
+366,
+61
+],
+[
+366,
+438,
+62
+],
+[
+438,
+482,
+63
+],
+[
+482,
+533,
+64
+],
+[
+533,
+569,
+65
+],
+[
+569,
+599,
+66
+],
+[
+599,
+667,
+67
+],
+[
+667,
+728,
+68
+],
+[
+728,
+789,
+69
+],
+[
+789,
+864,
+70
+],
+[
+864,
+920,
+71
+],
+[
+920,
+955,
+72
+]
+],
+[
+[
+0,
+13,
+72
+],
+[
+13,
+46,
+73
+],
+[
+46,
+83,
+74
+],
+[
+83,
+162,
+75
+],
+[
+162,
+239,
+76
+],
+[
+239,
+312,
+77
+],
+[
+312,
+355,
+78
+],
+[
+355,
+397,
+79
+]
+],
+[
+[
+0,
+0,
+79
+],
+[
+0,
+32,
+80
+],
+[
+32,
+63,
+81
+],
+[
+63,
+107,
+82
+],
+[
+107,
+171,
+83
+],
+[
+171,
+243,
+84
+],
+[
+243,
+284,
+85
+],
+[
+284,
+354,
+86
+],
+[
+354,
+403,
+87
+],
+[
+403,
+434,
+88
+],
+[
+434,
+465,
+89
+]
+],
+[
+[
+0,
+33,
+89
+],
+[
+33,
+86,
+90
+]
+],
+[
+[
+0,
+28,
+91
+],
+[
+28,
+72,
+92
+],
+[
+72,
+130,
+93
+],
+[
+130,
+181,
+94
+],
+[
+181,
+248,
+95
+],
+[
+248,
+324,
+96
+],
+[
+324,
+401,
+97
+],
+[
+401,
+452,
+98
+],
+[
+452,
+485,
+99
+],
+[
+485,
+568,
+100
+],
+[
+568,
+591,
+101
+]
+]
+],
+"after_fix": [
+[
+[
+0,
+63,
+1
+],
+[
+63,
+105,
+2
+],
+[
+105,
+181,
+3
+],
+[
+181,
+214,
+4
+],
+[
+214,
+263,
+5
+]
+],
+[
+[
+0,
+0,
+5
+],
+[
+0,
+61,
+6
+],
+[
+61,
+102,
+7
+],
+[
+102,
+143,
+8
+],
+[
+143,
+203,
+9
+],
+[
+203,
+263,
+10
+],
+[
+263,
+295,
+11
+]
+],
+[
+[
+0,
+27,
+11
+],
+[
+27,
+101,
+12
+],
+[
+101,
+159,
+13
+],
+[
+159,
+223,
+14
+],
+[
+223,
+284,
+15
+],
+[
+284,
+343,
+16
+],
+[
+343,
+384,
+17
+],
+[
+384,
+411,
+18
+]
+],
+[
+[
+0,
+0,
+18
+],
+[
+0,
+48,
+19
+],
+[
+48,
+103,
+20
+],
+[
+103,
+143,
+21
+],
+[
+143,
+164,
+22
+]
+],
+[
+[
+0,
+10,
+22
+],
+[
+10,
+45,
+23
+],
+[
+45,
+104,
+24
+]
+],
+[
+[
+0,
+9,
+24
+],
+[
+9,
+44,
+25
+],
+[
+44,
+105,
+26
+]
+],
+[
+[
+0,
+5,
+26
+],
+[
+5,
+68,
+27
+],
+[
+68,
+118,
+28
+],
+[
+118,
+159,
+29
+],
+[
+159,
+194,
+30
+],
+[
+194,
+231,
+31
+],
+[
+231,
+274,
+32
+]
+],
+[
+[
+0,
+0,
+32
+],
+[
+0,
+29,
+33
+],
+[
+29,
+87,
+34
+]
+],
+[
+[
+0,
+9,
+34
+],
+[
+9,
+71,
+35
+],
+[
+71,
+131,
+36
+]
+],
+[
+[
+0,
+62,
+37
+],
+[
+62,
+114,
+38
+],
+[
+114,
+175,
+39
+],
+[
+175,
+209,
+40
+],
+[
+209,
+227,
+41
+]
+],
+[
+[
+0,
+54,
+41
+],
+[
+54,
+97,
+42
+],
+[
+97,
+124,
+43
+]
+],
+[
+[
+0,
+42,
+43
+],
+[
+42,
+88,
+44
+],
+[
+88,
+139,
+45
+],
+[
+139,
+203,
+46
+],
+[
+203,
+216,
+47
+]
+],
+[
+[
+0,
+19,
+47
+],
+[
+19,
+80,
+48
+],
+[
+80,
+148,
+49
+],
+[
+148,
+215,
+50
+],
+[
+215,
+295,
+51
+],
+[
+295,
+347,
+52
+],
+[
+347,
+414,
+53
+],
+[
+414,
+457,
+54
+],
+[
+457,
+482,
+55
+]
+],
+[
+[
+0,
+32,
+55
+],
+[
+32,
+80,
+56
+],
+[
+80,
+139,
+57
+],
+[
+139,
+203,
+58
+],
+[
+203,
+240,
+59
+],
+[
+240,
+291,
+60
+],
+[
+291,
+366,
+61
+],
+[
+366,
+438,
+62
+],
+[
+438,
+482,
+63
+],
+[
+482,
+533,
+64
+],
+[
+533,
+569,
+65
+],
+[
+569,
+599,
+66
+],
+[
+599,
+667,
+67
+],
+[
+667,
+728,
+68
+],
+[
+728,
+789,
+69
+],
+[
+789,
+864,
+70
+],
+[
+864,
+920,
+71
+],
+[
+920,
+955,
+72
+]
+],
+[
+[
+0,
+13,
+72
+],
+[
+13,
+46,
+73
+],
+[
+46,
+83,
+74
+],
+[
+83,
+162,
+75
+],
+[
+162,
+239,
+76
+],
+[
+239,
+312,
+77
+],
+[
+312,
+355,
+78
+],
+[
+355,
+397,
+79
+]
+],
+[
+[
+0,
+0,
+79
+],
+[
+0,
+32,
+80
+],
+[
+32,
+63,
+81
+],
+[
+63,
+107,
+82
+],
+[
+107,
+171,
+83
+],
+[
+171,
+243,
+84
+],
+[
+243,
+284,
+85
+],
+[
+284,
+354,
+86
+],
+[
+354,
+403,
+87
+],
+[
+403,
+434,
+88
+],
+[
+434,
+465,
+89
+]
+],
+[
+[
+0,
+33,
+89
+],
+[
+33,
+86,
+90
+]
+],
+[
+[
+0,
+28,
+91
+],
+[
+28,
+72,
+92
+],
+[
+72,
+130,
+93
+],
+[
+130,
+181,
+94
+],
+[
+181,
+248,
+95
+],
+[
+248,
+324,
+96
+],
+[
+324,
+401,
+97
+],
+[
+401,
+452,
+98
+],
+[
+452,
+485,
+99
+],
+[
+485,
+568,
+100
+],
+[
+568,
+591,
+101
+]
+]
+],
+"after_fix_punc": [
+[
+[
+0,
+63,
+1
+],
+[
+63,
+105,
+2
+],
+[
+105,
+182,
+3
+],
+[
+182,
+215,
+4
+],
+[
+215,
+263,
+5
+]
+],
+[
+[
+0,
+1,
+5
+],
+[
+1,
+61,
+6
+],
+[
+61,
+102,
+7
+],
+[
+102,
+143,
+8
+],
+[
+143,
+203,
+9
+],
+[
+203,
+263,
+10
+],
+[
+263,
+295,
+11
+]
+],
+[
+[
+0,
+27,
+11
+],
+[
+27,
+101,
+12
+],
+[
+101,
+159,
+13
+],
+[
+159,
+223,
+14
+],
+[
+223,
+284,
+15
+],
+[
+284,
+343,
+16
+],
+[
+343,
+384,
+17
+],
+[
+384,
+411,
+18
+]
+],
+[
+[
+0,
+0,
+18
+],
+[
+0,
+48,
+19
+],
+[
+48,
+104,
+20
+],
+[
+104,
+144,
+21
+],
+[
+144,
+164,
+22
+]
+],
+[
+[
+0,
+11,
+22
+],
+[
+11,
+46,
+23
+],
+[
+46,
+104,
+24
+]
+],
+[
+[
+0,
+9,
+24
+],
+[
+9,
+44,
+25
+],
+[
+44,
+105,
+26
+]
+],
+[
+[
+0,
+6,
+26
+],
+[
+6,
+68,
+27
+],
+[
+68,
+118,
+28
+],
+[
+118,
+159,
+29
+],
+[
+159,
+194,
+30
+],
+[
+194,
+232,
+31
+],
+[
+232,
+274,
+32
+]
+],
+[
+[
+0,
+1,
+32
+],
+[
+1,
+30,
+33
+],
+[
+30,
+87,
+34
+]
+],
+[
+[
+0,
+9,
+34
+],
+[
+9,
+71,
+35
+],
+[
+71,
+131,
+36
+]
+],
+[
+[
+0,
+62,
+37
+],
+[
+62,
+114,
+38
+],
+[
+114,
+175,
+39
+],
+[
+175,
+209,
+40
+],
+[
+209,
+227,
+41
+]
+],
+[
+[
+0,
+57,
+41
+],
+[
+57,
+97,
+42
+],
+[
+97,
+124,
+43
+]
+],
+[
+[
+0,
+42,
+43
+],
+[
+42,
+89,
+44
+],
+[
+89,
+139,
+45
+],
+[
+139,
+203,
+46
+],
+[
+203,
+216,
+47
+]
+],
+[
+[
+0,
+19,
+47
+],
+[
+19,
+80,
+48
+],
+[
+80,
+148,
+49
+],
+[
+148,
+215,
+50
+],
+[
+215,
+295,
+51
+],
+[
+295,
+347,
+52
+],
+[
+347,
+414,
+53
+],
+[
+414,
+458,
+54
+],
+[
+458,
+482,
+55
+]
+],
+[
+[
+0,
+32,
+55
+],
+[
+32,
+80,
+56
+],
+[
+80,
+139,
+57
+],
+[
+139,
+203,
+58
+],
+[
+203,
+240,
+59
+],
+[
+240,
+291,
+60
+],
+[
+291,
+366,
+61
+],
+[
+366,
+438,
+62
+],
+[
+438,
+482,
+63
+],
+[
+482,
+533,
+64
+],
+[
+533,
+569,
+65
+],
+[
+569,
+599,
+66
+],
+[
+599,
+667,
+67
+],
+[
+667,
+728,
+68
+],
+[
+728,
+789,
+69
+],
+[
+789,
+865,
+70
+],
+[
+865,
+920,
+71
+],
+[
+920,
+955,
+72
+]
+],
+[
+[
+0,
+13,
+72
+],
+[
+13,
+47,
+73
+],
+[
+47,
+84,
+74
+],
+[
+84,
+162,
+75
+],
+[
+162,
+239,
+76
+],
+[
+239,
+312,
+77
+],
+[
+312,
+355,
+78
+],
+[
+355,
+397,
+79
+]
+],
+[
+[
+0,
+0,
+79
+],
+[
+0,
+32,
+80
+],
+[
+32,
+63,
+81
+],
+[
+63,
+107,
+82
+],
+[
+107,
+172,
+83
+],
+[
+172,
+243,
+84
+],
+[
+243,
+284,
+85
+],
+[
+284,
+354,
+86
+],
+[
+354,
+404,
+87
+],
+[
+404,
+434,
+88
+],
+[
+434,
+465,
+89
+]
+],
+[
+[
+0,
+33,
+89
+],
+[
+33,
+86,
+90
+]
+],
+[
+[
+0,
+28,
+91
+],
+[
+28,
+73,
+92
+],
+[
+73,
+130,
+93
+],
+[
+130,
+181,
+94
+],
+[
+181,
+249,
+95
+],
+[
+249,
+324,
+96
+],
+[
+324,
+401,
+97
+],
+[
+401,
+452,
+98
+],
+[
+452,
+485,
+99
+],
+[
+485,
+568,
+100
+],
+[
+568,
+591,
+101
+]
+]
+],
+"cues_raw": [
+{
+"text": "＊Bispo.",
+"start": 0.0,
+"end": 1.2
+},
+{
+"text": "--Ha algum tempo estou para lhe dizer isto, mas não me atrevia.",
+"start": 1.5,
+"end": 5.441
+},
+{
+"text": " Não me parece bonito que o nosso Bentinho",
+"start": 5.614,
+"end": 7.521
+},
+{
+"text": " ande mettido nos cantos com a filha do _Tartaruga_, e esta é a difficuldade,",
+"start": 7.811,
+"end": 12.029
+},
+{
+"text": " porque se elles pegam de namoro,",
+"start": 12.234,
+"end": 14.464
+},
+{
+"text": " a senhora terá muito que lutar para separal-os.-",
+"start": 14.828,
+"end": 17.636
+},
+{
+"text": "-É um modo de falar. Em segredinhos, sempre juntos. Bentinho",
+"start": 18.169,
+"end": 21.626
+},
+{
+"text": " quasi que não sae de lá. A pequena é uma",
+"start": 22.135,
+"end": 24.888
+},
+{
+"text": " desmiolada; o pae faz que não vê; tomara",
+"start": 25.22,
+"end": 27.971
+},
+{
+"text": " elle que as cousas corressem de maneira, que... Comprehendo",
+"start": 28.297,
+"end": 32.755
+},
+{
+"text": " o seu gesto; a senhora não crê em taes calculos, parece-lhe",
+"start": 33.02,
+"end": 37.449
+},
+{
+"text": " que todos têm a alma candida...--Mas, Sr. José Dias, tenho",
+"start": 37.86,
+"end": 40.776
+},
+{
+"text": " visto os pequenos brincando, e nunca vi nada que faça desconfiar. Basta a",
+"start": 40.838,
+"end": 46.527
+},
+{
+"text": " edade; Bentinho mal tem quinze annos. Capitú fez quatorze",
+"start": 46.624,
+"end": 49.674
+},
+{
+"text": " á semana passada; são dous creançolas. Não se esqueça que foram",
+"start": 50.059,
+"end": 53.533
+},
+{
+"text": " criados juntos, desde aquella grande enchente, ha dez annos,",
+"start": 54.058,
+"end": 57.137
+},
+{
+"text": " em que a familia Padua perdeu tanta cousa; d'ahi vieram as",
+"start": 57.29,
+"end": 61.246
+},
+{
+"text": " nossas relações. Pois eu hei de crer...?",
+"start": 61.62,
+"end": 64.026
+},
+{
+"text": " Mano Cosme, você que acha?",
+"start": 64.339,
+"end": 65.955
+},
+{
+"text": "Tio Cosme respondeu com um «Ora!» que, traduzido",
+"start": 66.154,
+"end": 69.129
+},
+{
+"text": " em vulgar, queria dizer: «São imaginações do José Dias;",
+"start": 69.699,
+"end": 72.611
+},
+{
+"text": " os pequenos divertem-se, eu divirto-me;",
+"start": 73.153,
+"end": 76.06
+},
+{
+"text": " onde está o gamão?»--Póde ser,",
+"start": 76.611,
+"end": 78.366
+},
+{
+"text": " minha senhora. Oxalá tenham razão;",
+"start": 78.681,
+"end": 80.619
+},
+{
+"text": " mas creia que não falei senão depois de muito examinar...--Em todo",
+"start": 80.751,
+"end": 84.914
+},
+{
+"text": " caso, vae sendo tempo, interrompeu",
+"start": 85.11,
+"end": 87.625
+},
+{
+"text": " minha mãe; vou tratar de mettel-o no seminario quanto antes.--Bem,",
+"start": 87.793,
+"end": 93.146
+},
+{
+"text": " uma vez que não perdeu a ideia de o fazer padre, tem-se ganho",
+"start": 93.354,
+"end": 97.826
+},
+{
+"text": " o principal. Bentinho ha de satisfazer os desejos",
+"start": 97.914,
+"end": 101.281
+},
+{
+"text": " de sua mãe. E depois a egreja brasileira",
+"start": 101.293,
+"end": 103.716
+},
+{
+"text": " tem altos destinos. Não esqueçamos",
+"start": 104.036,
+"end": 106.311
+},
+{
+"text": " que um bispo presidiu a Constituinte,",
+"start": 106.711,
+"end": 109.097
+},
+{
+"text": " e que o padre Feijó governou o imperio...-",
+"start": 109.374,
+"end": 111.139
+},
+{
+"text": "-Governou como a cara d'elle!",
+"start": 111.677,
+"end": 113.853
+},
+{
+"text": " atalhou tio Cosme, cedendo a antigos rancores politicos.--Perdão,",
+"start": 114.068,
+"end": 117.553
+},
+{
+"text": " doutor, não estou defendendo ninguem, estou citando. O que eu",
+"start": 117.728,
+"end": 122.457
+},
+{
+"text": " quero é dizer que o clero ainda tem grande papel no Brasil.",
+"start": 122.861,
+"end": 126.441
+},
+{
+"text": "--Você o que quer é um capote; ande, vá buscar o gamão. Quanto",
+"start": 126.813,
+"end": 130.964
+},
+{
+"text": " ao pequeno, se tem de ser padre, realmente é melhor",
+"start": 131.513,
+"end": 135.582
+},
+{
+"text": " que não comece a dizer missa atraz das portas. Mas, olhe cá,",
+"start": 136.035,
+"end": 139.898
+},
+{
+"text": " mana Gloria, ha mesmo necessidade",
+"start": 140.011,
+"end": 142.569
+},
+{
+"text": " de fazel-o padre?--Sei que você fez promessa... mas, uma promessa assim...",
+"start": 142.936,
+"end": 147.694
+},
+{
+"text": " não sei... Creio que, bem pensado... Vo",
+"start": 148.195,
+"end": 150.117
+},
+{
+"text": "cê que acha, prima Justina?--Verdade é que cada um sabe melhor de si,",
+"start": 150.219,
+"end": 153.884
+},
+{
+"text": " continuou tio Cosme; Deus é que sabe do todos.",
+"start": 154.218,
+"end": 156.927
+},
+{
+"text": " Comtudo, uma promessa de tantos annos... Mas, que",
+"start": 157.343,
+"end": 160.815
+},
+{
+"text": " é isso, mana Gloria? Está chorando? Ora esta! Pois isto é cousa",
+"start": 161.205,
+"end": 164.752
+},
+{
+"text": " de lagrimas?Minha mãe assoou-se",
+"start": 165.057,
+"end": 166.646
+},
+{
+"text": " sem responder. Prima Justina creio que se levantou e foi ter",
+"start": 166.755,
+"end": 171.382
+},
+{
+"text": " com ella. Seguiu-se um alto silencio, durante o qual estive a pique",
+"start": 171.422,
+"end": 175.504
+},
+{
+"text": " de entrar na sala, mas outra força maior, outra emoção... Não pude",
+"start": 175.93,
+"end": 179.614
+},
+{
+"text": " ouvir as palavras que tio Cosme entrou a dizer. Prima Justina exhortava: «Prima",
+"start": 179.869,
+"end": 185.436
+},
+{
+"text": " Gloria! prima Gloria!» José Dias desculpava-se: «Se",
+"start": 185.608,
+"end": 188.053
+},
+{
+"text": " soubesse, não teria falado, mas falei pela veneração, pela estima,",
+"start": 188.228,
+"end": 192.546
+},
+{
+"text": " pelo affecto, para cumprir um dever amargo,",
+"start": 192.631,
+"end": 194.474
+},
+{
+"text": " um dever amarissimo...»José Dias amava os superlativos.",
+"start": 194.735,
+"end": 198.64
+},
+{
+"text": " Era um modo de dar feição monumental ás ideias;",
+"start": 198.968,
+"end": 202.329
+},
+{
+"text": " não as havendo, servir a prolongar as phrases. Levantou-se",
+"start": 202.83,
+"end": 206.468
+},
+{
+"text": " para ir buscar o gamão, que estava no interior da casa. Cosi-me",
+"start": 206.959,
+"end": 211.996
+},
+{
+"text": " muito á parede, e vi-o passar com as",
+"start": 212.332,
+"end": 214.453
+},
+{
+"text": " suas calças brancas engommadas, presilhas, rodaque",
+"start": 214.923,
+"end": 218.281
+},
+{
+"text": " e gravata de mola. Foi dos ultimos que usaram presilhas no Rio de Janeiro,",
+"start": 218.707,
+"end": 224.411
+},
+{
+"text": " e talvez neste mundo. Trazia as calças curtas para que lhe ficassem bem",
+"start": 224.491,
+"end": 229.097
+},
+{
+"text": " esticadas. A gravata de setim preto, com um",
+"start": 229.662,
+"end": 232.106
+},
+{
+"text": " aro de aço por dentro, immobilisava-lhe o pescoço;",
+"start": 232.198,
+"end": 235.855
+},
+{
+"text": " era então moda. O rodaque de chita,",
+"start": 236.095,
+"end": 239.207
+},
+{
+"text": " veste caseira o leve, parecia",
+"start": 239.524,
+"end": 241.295
+},
+{
+"text": " nelle uma casaca de cerimonia. Era magro, chupado, com um principio",
+"start": 241.403,
+"end": 244.697
+},
+{
+"text": " de calva; teria os seus cincoenta e cinco annos. Levantou-se",
+"start": 245.177,
+"end": 249.961
+},
+{
+"text": " com o passo vagaroso do costume, não aquelle vagar arrastado",
+"start": 250.465,
+"end": 253.967
+},
+{
+"text": " dos preguiçosos, mas um vagar calculado e deduzido, um syllogismo completo,",
+"start": 254.16,
+"end": 258.171
+},
+{
+"text": " a premissa antes da consequencia, a consequencia antes",
+"start": 258.396,
+"end": 262.295
+},
+{
+"text": " da conclusão. Um dever amarissimo!Nem sempre ia",
+"start": 262.768,
+"end": 265.418
+},
+{
+"text": " naquelle passo vagaroso e rigido.",
+"start": 265.751,
+"end": 268.312
+},
+{
+"text": " Tambem se descompunha em accionados,",
+"start": 268.659,
+"end": 270.801
+},
+{
+"text": " era muita vez rapido e lepido nos movimentos, tão natural nesta como naquella",
+"start": 271.252,
+"end": 276.154
+},
+{
+"text": " maneira. Outrosim, ria largo, se era preciso, de um grande riso sem vontade,",
+"start": 276.357,
+"end": 281.205
+},
+{
+"text": " mas communicativo, a tal ponto as bochechas, os dentes, os olhos, toda a",
+"start": 281.473,
+"end": 286.45
+},
+{
+"text": " cara, todo a pessoa, todo o mundo pareciam",
+"start": 286.813,
+"end": 289.765
+},
+{
+"text": " rir nelle. Nos lances graves, gravissimo.",
+"start": 290.308,
+"end": 293.224
+},
+{
+"text": "Era nosso aggregado desde muitos",
+"start": 293.568,
+"end": 295.751
+},
+{
+"text": " annos; meu pae ainda estava na",
+"start": 296.081,
+"end": 297.766
+},
+{
+"text": " antiga fazenda de Itaguahy, e eu acabava de",
+"start": 298.258,
+"end": 301.725
+},
+{
+"text": " nascer. Um dia appareceu alli vendendo-se por medico homeopatha;",
+"start": 301.9,
+"end": 305.561
+},
+{
+"text": " levava um _Manual_ e uma botica. Havia então um andaço de febres; José",
+"start": 306.099,
+"end": 310.586
+},
+{
+"text": " Dias curou o feitor e uma escrava, e não",
+"start": 310.844,
+"end": 313.402
+},
+{
+"text": " quiz receber nenhuma remuneração. Então meu pae propoz-lhe ficar alli",
+"start": 313.873,
+"end": 317.531
+},
+{
+"text": " vivendo, com pequeno ordenado. José Dias recusou,",
+"start": 317.759,
+"end": 320.897
+},
+{
+"text": " dizendo que era justo levar a",
+"start": 321.337,
+"end": 323.267
+},
+{
+"text": " saude á casa de sapé do pobre.--Quem lhe impede que vá a outras",
+"start": 323.715,
+"end": 327.789
+},
+{
+"text": " partes? Vá aonde quizer, mas fique morando comnosco.",
+"start": 328.089,
+"end": 331.333
+},
+{
+"text": "Voltou dalli a duas semanas,",
+"start": 331.796,
+"end": 334.002
+},
+{
+"text": " acceitou casa e comida sem outro estipendio,",
+"start": 334.118,
+"end": 336.607
+},
+{
+"text": " salvo o que quizessem dar por festas. Quando meu pae foi",
+"start": 336.909,
+"end": 340.699
+},
+{
+"text": " eleito deputado e veiu para o Rio de Janeiro com a",
+"start": 341.283,
+"end": 345.408
+},
+{
+"text": " familia, elle veiu tambem, e teve o seu quarto ao fundo da chacara.",
+"start": 345.956,
+"end": 350.518
+},
+{
+"text": " Um dia, reinando outra vez febres em Itaguahy, disse-lhe meu pae que fosse",
+"start": 350.545,
+"end": 354.626
+},
+{
+"text": " ver a nossa escravatura. José Dias deixou-se estar calado, suspirou e acabou",
+"start": 355.172,
+"end": 359.606
+},
+{
+"text": " confessando que não era medico. Tomára este titulo",
+"start": 359.789,
+"end": 362.622
+},
+{
+"text": " para ajudar a propaganda da nova",
+"start": 362.753,
+"end": 365.342
+},
+{
+"text": " escola, e não o fez sem estudar muito e muito; mas a consciencia não lhe permittia",
+"start": 365.908,
+"end": 371.611
+},
+{
+"text": " acceitar mais doentes.",
+"start": 372.153,
+"end": 373.96
+}
+],
+"cues": [
+{
+"text": "＊Bispo.-",
+"start": 0.0,
+"end": 1.2
+},
+{
+"text": "-Ha algum tempo estou para lhe dizer isto, mas não me atrevia.",
+"start": 1.5,
+"end": 5.441
+},
+{
+"text": "Não me parece bonito que o nosso Bentinho",
+"start": 5.614,
+"end": 7.521
+},
+{
+"text": "ande mettido nos cantos com a filha do _Tartaruga_, e esta é a difficuldade,",
+"start": 7.811,
+"end": 12.029
+},
+{
+"text": "porque se elles pegam de namoro,",
+"start": 12.234,
+"end": 14.464
+},
+{
+"text": "a senhora terá muito que lutar para separal-os.-",
+"start": 14.828,
+"end": 17.636
+},
+{
+"text": "-É um modo de falar. Em segredinhos, sempre juntos. Bentinho",
+"start": 18.169,
+"end": 21.626
+},
+{
+"text": "quasi que não sae de lá. A pequena é uma",
+"start": 22.135,
+"end": 24.888
+},
+{
+"text": "desmiolada; o pae faz que não vê; tomara",
+"start": 25.22,
+"end": 27.971
+},
+{
+"text": "elle que as cousas corressem de maneira, que... Comprehendo",
+"start": 28.297,
+"end": 32.755
+},
+{
+"text": "o seu gesto; a senhora não crê em taes calculos, parece-lhe",
+"start": 33.02,
+"end": 37.449
+},
+{
+"text": "que todos têm a alma candida...--Mas, Sr. José Dias, tenho",
+"start": 37.86,
+"end": 40.776
+},
+{
+"text": "visto os pequenos brincando, e nunca vi nada que faça desconfiar. Basta a",
+"start": 40.838,
+"end": 46.527
+},
+{
+"text": "edade; Bentinho mal tem quinze annos. Capitú fez quatorze",
+"start": 46.624,
+"end": 49.674
+},
+{
+"text": "á semana passada; são dous creançolas. Não se esqueça que foram",
+"start": 50.059,
+"end": 53.533
+},
+{
+"text": "criados juntos, desde aquella grande enchente, ha dez annos,",
+"start": 54.058,
+"end": 57.137
+},
+{
+"text": "em que a familia Padua perdeu tanta cousa; d'ahi vieram as",
+"start": 57.29,
+"end": 61.246
+},
+{
+"text": "nossas relações. Pois eu hei de crer...?",
+"start": 61.62,
+"end": 64.026
+},
+{
+"text": "Mano Cosme, você que acha?",
+"start": 64.339,
+"end": 65.955
+},
+{
+"text": "Tio Cosme respondeu com um «Ora!» que, traduzido",
+"start": 66.154,
+"end": 69.129
+},
+{
+"text": "em vulgar, queria dizer: «São imaginações do José Dias;",
+"start": 69.699,
+"end": 72.611
+},
+{
+"text": "os pequenos divertem-se, eu divirto-me;",
+"start": 73.153,
+"end": 76.06
+},
+{
+"text": "onde está o gamão?»--Póde ser,",
+"start": 76.611,
+"end": 78.366
+},
+{
+"text": "minha senhora. Oxalá tenham razão;",
+"start": 78.681,
+"end": 80.619
+},
+{
+"text": "mas creia que não falei senão depois de muito examinar...--Em todo",
+"start": 80.751,
+"end": 84.914
+},
+{
+"text": "caso, vae sendo tempo, interrompeu",
+"start": 85.11,
+"end": 87.625
+},
+{
+"text": "minha mãe; vou tratar de mettel-o no seminario quanto antes.--Bem,",
+"start": 87.793,
+"end": 93.146
+},
+{
+"text": "uma vez que não perdeu a ideia de o fazer padre, tem-se ganho",
+"start": 93.354,
+"end": 97.826
+},
+{
+"text": "o principal. Bentinho ha de satisfazer os desejos",
+"start": 97.914,
+"end": 101.281
+},
+{
+"text": "de sua mãe. E depois a egreja brasileira",
+"start": 101.293,
+"end": 103.716
+},
+{
+"text": "tem altos destinos. Não esqueçamos",
+"start": 104.036,
+"end": 106.311
+},
+{
+"text": "que um bispo presidiu a Constituinte,",
+"start": 106.711,
+"end": 109.097
+},
+{
+"text": "e que o padre Feijó governou o imperio...-",
+"start": 109.374,
+"end": 111.139
+},
+{
+"text": "-Governou como a cara d'elle!",
+"start": 111.677,
+"end": 113.853
+},
+{
+"text": "atalhou tio Cosme, cedendo a antigos rancores politicos.--Perdão,",
+"start": 114.068,
+"end": 117.553
+},
+{
+"text": "doutor, não estou defendendo ninguem, estou citando. O que eu",
+"start": 117.728,
+"end": 122.457
+},
+{
+"text": "quero é dizer que o clero ainda tem grande papel no Brasil.-",
+"start": 122.861,
+"end": 126.441
+},
+{
+"text": "-Você o que quer é um capote; ande, vá buscar o gamão. Quanto",
+"start": 126.813,
+"end": 130.964
+},
+{
+"text": "ao pequeno, se tem de ser padre, realmente é melhor",
+"start": 131.513,
+"end": 135.582
+},
+{
+"text": "que não comece a dizer missa atraz das portas. Mas, olhe cá,",
+"start": 136.035,
+"end": 139.898
+},
+{
+"text": "mana Gloria, ha mesmo necessidade",
+"start": 140.011,
+"end": 142.569
+},
+{
+"text": "de fazel-o padre?--Sei que você fez promessa... mas, uma promessa assim...",
+"start": 142.936,
+"end": 147.694
+},
+{
+"text": "não sei... Creio que, bem pensado... Vo",
+"start": 148.195,
+"end": 150.117
+},
+{
+"text": "cê que acha, prima Justina?--Verdade é que cada um sabe melhor de si,",
+"start": 150.219,
+"end": 153.884
+},
+{
+"text": "continuou tio Cosme; Deus é que sabe do todos.",
+"start": 154.218,
+"end": 156.927
+},
+{
+"text": "Comtudo, uma promessa de tantos annos... Mas, que",
+"start": 157.343,
+"end": 160.815
+},
+{
+"text": "é isso, mana Gloria? Está chorando? Ora esta! Pois isto é cousa",
+"start": 161.205,
+"end": 164.752
+},
+{
+"text": "de lagrimas?Minha mãe assoou-",
+"start": 165.057,
+"end": 166.646
+},
+{
+"text": "se sem responder. Prima Justina creio que se levantou e foi ter",
+"start": 166.755,
+"end": 171.382
+},
+{
+"text": "com ella. Seguiu-se um alto silencio, durante o qual estive a pique",
+"start": 171.422,
+"end": 175.504
+},
+{
+"text": "de entrar na sala, mas outra força maior, outra emoção... Não pude",
+"start": 175.93,
+"end": 179.614
+},
+{
+"text": "ouvir as palavras que tio Cosme entrou a dizer. Prima Justina exhortava: «Prima",
+"start": 179.869,
+"end": 185.436
+},
+{
+"text": "Gloria! prima Gloria!» José Dias desculpava-se: «Se",
+"start": 185.608,
+"end": 188.053
+},
+{
+"text": "soubesse, não teria falado, mas falei pela veneração, pela estima,",
+"start": 188.228,
+"end": 192.546
+},
+{
+"text": "pelo affecto, para cumprir um dever amargo,",
+"start": 192.631,
+"end": 194.474
+},
+{
+"text": "um dever amarissimo...»José Dias amava os superlativos.",
+"start": 194.735,
+"end": 198.64
+},
+{
+"text": "Era um modo de dar feição monumental ás ideias;",
+"start": 198.968,
+"end": 202.329
+},
+{
+"text": "não as havendo, servir a prolongar as phrases. Levantou-",
+"start": 202.83,
+"end": 206.468
+},
+{
+"text": "se para ir buscar o gamão, que estava no interior da casa. Cosi-",
+"start": 206.959,
+"end": 211.996
+},
+{
+"text": "me muito á parede, e vi-o passar com as",
+"start": 212.332,
+"end": 214.453
+},
+{
+"text": "suas calças brancas engommadas, presilhas, rodaque",
+"start": 214.923,
+"end": 218.281
+},
+{
+"text": "e gravata de mola. Foi dos ultimos que usaram presilhas no Rio de Janeiro,",
+"start": 218.707,
+"end": 224.411
+},
+{
+"text": "e talvez neste mundo. Trazia as calças curtas para que lhe ficassem bem",
+"start": 224.491,
+"end": 229.097
+},
+{
+"text": "esticadas. A gravata de setim preto, com um",
+"start": 229.662,
+"end": 232.106
+},
+{
+"text": "aro de aço por dentro, immobilisava-lhe o pescoço;",
+"start": 232.198,
+"end": 235.855
+},
+{
+"text": "era então moda. O rodaque de chita,",
+"start": 236.095,
+"end": 239.207
+},
+{
+"text": "veste caseira o leve, parecia",
+"start": 239.524,
+"end": 241.295
+},
+{
+"text": "nelle uma casaca de cerimonia. Era magro, chupado, com um principio",
+"start": 241.403,
+"end": 244.697
+},
+{
+"text": "de calva; teria os seus cincoenta e cinco annos. Levantou-",
+"start": 245.177,
+"end": 249.961
+},
+{
+"text": "se com o passo vagaroso do costume, não aquelle vagar arrastado",
+"start": 250.465,
+"end": 253.967
+},
+{
+"text": "dos preguiçosos, mas um vagar calculado e deduzido, um syllogismo completo,",
+"start": 254.16,
+"end": 258.171
+},
+{
+"text": "a premissa antes da consequencia, a consequencia antes",
+"start": 258.396,
+"end": 262.295
+},
+{
+"text": "da conclusão. Um dever amarissimo!Nem sempre ia",
+"start": 262.768,
+"end": 265.418
+},
+{
+"text": "naquelle passo vagaroso e rigido.",
+"start": 265.751,
+"end": 268.312
+},
+{
+"text": "Tambem se descompunha em accionados,",
+"start": 268.659,
+"end": 270.801
+},
+{
+"text": "era muita vez rapido e lepido nos movimentos, tão natural nesta como naquella",
+"start": 271.252,
+"end": 276.154
+},
+{
+"text": "maneira. Outrosim, ria largo, se era preciso, de um grande riso sem vontade,",
+"start": 276.357,
+"end": 281.205
+},
+{
+"text": "mas communicativo, a tal ponto as bochechas, os dentes, os olhos, toda a",
+"start": 281.473,
+"end": 286.45
+},
+{
+"text": "cara, todo a pessoa, todo o mundo pareciam",
+"start": 286.813,
+"end": 289.765
+},
+{
+"text": "rir nelle. Nos lances graves, gravissimo.",
+"start": 290.308,
+"end": 293.224
+},
+{
+"text": "Era nosso aggregado desde muitos",
+"start": 293.568,
+"end": 295.751
+},
+{
+"text": "annos; meu pae ainda estava na",
+"start": 296.081,
+"end": 297.766
+},
+{
+"text": "antiga fazenda de Itaguahy, e eu acabava de",
+"start": 298.258,
+"end": 301.725
+},
+{
+"text": "nascer. Um dia appareceu alli vendendo-se por medico homeopatha;",
+"start": 301.9,
+"end": 305.561
+},
+{
+"text": "levava um _Manual_ e uma botica. Havia então um andaço de febres; José",
+"start": 306.099,
+"end": 310.586
+},
+{
+"text": "Dias curou o feitor e uma escrava, e não",
+"start": 310.844,
+"end": 313.402
+},
+{
+"text": "quiz receber nenhuma remuneração. Então meu pae propoz-lhe ficar alli",
+"start": 313.873,
+"end": 317.531
+},
+{
+"text": "vivendo, com pequeno ordenado. José Dias recusou,",
+"start": 317.759,
+"end": 320.897
+},
+{
+"text": "dizendo que era justo levar a",
+"start": 321.337,
+"end": 323.267
+},
+{
+"text": "saude á casa de sapé do pobre.--Quem lhe impede que vá a outras",
+"start": 323.715,
+"end": 327.789
+},
+{
+"text": "partes? Vá aonde quizer, mas fique morando comnosco.",
+"start": 328.089,
+"end": 331.333
+},
+{
+"text": "Voltou dalli a duas semanas,",
+"start": 331.796,
+"end": 334.002
+},
+{
+"text": "acceitou casa e comida sem outro estipendio,",
+"start": 334.118,
+"end": 336.607
+},
+{
+"text": "salvo o que quizessem dar por festas. Quando meu pae foi",
+"start": 336.909,
+"end": 340.699
+},
+{
+"text": "eleito deputado e veiu para o Rio de Janeiro com a",
+"start": 341.283,
+"end": 345.408
+},
+{
+"text": "familia, elle veiu tambem, e teve o seu quarto ao fundo da chacara.",
+"start": 345.956,
+"end": 350.518
+},
+{
+"text": "Um dia, reinando outra vez febres em Itaguahy, disse-lhe meu pae que fosse",
+"start": 350.545,
+"end": 354.626
+},
+{
+"text": "ver a nossa escravatura. José Dias deixou-se estar calado, suspirou e acabou",
+"start": 355.172,
+"end": 359.606
+},
+{
+"text": "confessando que não era medico. Tomára este titulo",
+"start": 359.789,
+"end": 362.622
+},
+{
+"text": "para ajudar a propaganda da nova",
+"start": 362.753,
+"end": 365.342
+},
+{
+"text": "escola, e não o fez sem estudar muito e muito; mas a consciencia não lhe permittia",
+"start": 365.908,
+"end": 371.611
+},
+{
+"text": "acceitar mais doentes.",
+"start": 372.153,
+"end": 373.96
+}
+],
+"synthetic": true
+}
