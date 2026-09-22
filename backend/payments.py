@@ -72,7 +72,9 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
     stripe = _stripe()
 
     if plan.recurring and billing.is_subscribed(account):
-        raise PaymentError("You are already on this plan.")
+        raise PaymentError(
+            "You already have a monthly plan. Change or cancel it with Manage plan."
+        )
 
     price = {
         "currency": plan.currency,
@@ -116,7 +118,7 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
 
 
 def portal_url(account: Account) -> str:
-    """Stripe's own page for cancelling or updating the unlimited plan."""
+    """Stripe's own page for cancelling a monthly plan or changing the card."""
     stripe = _stripe()
     if not account.stripe_customer_id:
         raise PaymentError("There is no payment history on this account yet.")
@@ -168,9 +170,17 @@ def apply_subscription(session: Session, sub: dict) -> None:
     if account.subscription_id and account.subscription_id != sub.get("id") \
             and sub.get("status") in ("canceled", "incomplete_expired"):
         return
+    period_end = _period_end(sub)
+    # A new subscription, or a new month of it, starts the count of its books
+    # again: the books of one month do not carry over.
+    if account.subscription_id != sub.get("id") \
+            or billing._aware(account.subscription_period_end) != period_end:
+        account.subscription_credits_used = 0
     account.subscription_id = sub.get("id")
     account.subscription_status = sub.get("status")
-    account.subscription_period_end = _period_end(sub)
+    account.subscription_period_end = period_end
+    if meta.get("plan_id"):
+        account.subscription_plan_id = meta["plan_id"]
     if sub.get("customer") and not account.stripe_customer_id:
         account.stripe_customer_id = sub["customer"]
     session.commit()
@@ -219,7 +229,9 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
 
     if checkout.get("customer") and not account.stripe_customer_id:
         account.stripe_customer_id = checkout["customer"]
-    if plan.credits:
+    # A pack adds credits that never expire. A monthly plan adds none here:
+    # its books come from the subscription, month by month.
+    if plan.credits and not plan.recurring:
         account.purchased_credits += plan.credits
     session.commit()
 

@@ -30,8 +30,6 @@ and nothing else.
 
 A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
 buyer wraps the ElevenLabs API; below $3 the fixed card fee takes too much.
-There is no unlimited plan: use comes in bursts (a backlog, then nothing), and
-one heavy user of an unlimited plan costs more than the plan brings in.
 
   free              in the browser: no limit, each output
   10-book pack      $4.99    ($0.50/book)
@@ -45,9 +43,18 @@ financial advocate: one such sale can hold this one CPU server for about six
 weeks, so the pack says how fast the server works. The packs sold before that
 (one book $4.99, five $16.99, twenty $39) are in RETIRED_PLANS.
 
+  10 books a month  $4.99/month
+  30 books a month  $9.99/month
+  unlimited         $50.00/month
+
+The owner added these monthly plans on 2026-09-22. The books of a month do not
+carry over. The unlimited plan goes against the earlier advice: use comes in
+bursts, and one heavy user can hold this one-job-at-a-time server for all
+other customers.
+
 Every number is overridable by env var; these are defaults, not decisions cast
-in code. An operator who wants a recurring plan can add one with
-SUBPLZ_WEB_PLANS_JSON ("recurring": true, "credits": null).
+in code (SUBPLZ_WEB_PLANS_JSON). Retire a plan that was sold: do not delete it.
+A late payment, or a running subscription, still finds it in RETIRED_PLANS.
 """
 from __future__ import annotations
 
@@ -61,7 +68,8 @@ from dataclasses import asdict, dataclass
 class Plan:
     id: str
     name: str
-    # None for the subscription, which is not a credit pack.
+    # Books in a pack, or books each month for a recurring plan. None for an
+    # unlimited recurring plan.
     credits: int | None
     price_cents: int
     currency: str = "usd"
@@ -103,6 +111,30 @@ DEFAULT_PLANS: list[Plan] = [
         blurb="For a very large library. Our server does one book at a time: "
               "about 2 hours for a 10-hour book, so 500 long books take weeks. "
               "Credits never expire.",
+    ),
+    Plan(
+        id="month10",
+        name="10 books a month",
+        credits=10,
+        price_cents=499,
+        recurring=True,
+        blurb="Renews each month until you cancel. Unused books do not carry over.",
+    ),
+    Plan(
+        id="month30",
+        name="30 books a month",
+        credits=30,
+        price_cents=999,
+        recurring=True,
+        blurb="Renews each month until you cancel. Unused books do not carry over.",
+    ),
+    Plan(
+        id="unlimited",
+        name="Unlimited",
+        credits=None,
+        price_cents=5000,
+        recurring=True,
+        blurb="Every book on our server, one at a time. Renews each month until you cancel.",
     ),
 ]
 

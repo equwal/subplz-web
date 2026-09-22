@@ -97,6 +97,12 @@ class Account(Base):
     subscription_period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # The plan of the subscription (pricing.Plan.id), and how many of its
+    # books this month's jobs used. A new month sets the count back to 0.
+    subscription_plan_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    subscription_credits_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
 
     # Set when this anonymous row was folded into a signed-in account. A
     # payment can finish without a browser attached (the webhook), so the
@@ -171,6 +177,10 @@ class Job(Base):
     )
     # Set if this job spent a daily free credit: the day of that credit.
     daily_credit_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # 1 if this job spent one of the monthly books of a subscription.
+    plan_credit_spent: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow

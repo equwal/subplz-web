@@ -136,13 +136,14 @@ function renderAccount() {
   // What is sold is conversion on this server's hardware. Nothing is for sale
   // until that is connected; in this tab each output is free.
   const selling = a.billing_enabled && a.cloud_available;
-  el.buyBtn.hidden = !selling || a.subscribed;
+  // A monthly plan with a limit can still add a pack; an unlimited one needs none.
+  el.buyBtn.hidden = !selling || a.unlimited;
   el.portalBtn.hidden = !(selling && a.subscribed);
   el.quota.hidden = !selling;
   if (selling) {
     // Say "free" while each credit in hand is a free one.
     const free = a.credits > 0 && a.free_credits === a.credits ? 'free ' : '';
-    el.quota.textContent = a.subscribed ? 'Cloud plan'
+    el.quota.textContent = a.unlimited ? 'Unlimited plan'
       : `${a.credits} ${free}cloud credit${a.credits === 1 ? '' : 's'}`;
   }
   renderMode();
@@ -369,7 +370,7 @@ function inBrowser() { return !serverOffered() || el.inBrowser.checked; }
 function serverPrice() {
   const a = account;
   if (!a?.billing_enabled) return '';
-  if (a.subscribed) return ' Included in your plan.';
+  if (a.unlimited) return ' Included in your plan.';
   if (a.credits > 0) {
     const free = a.free_credits === a.credits ? ' free' : '';
     return ` One credit a book; you have ${a.credits}${free}.`;
@@ -548,7 +549,8 @@ function showResults(r) {
   // Not to a customer: someone who pays for credits has done their part.
   // Free credits do not make a customer, so count the bought ones only.
   const chipIn = document.getElementById('chip-in');
-  const bought = (account?.credits ?? 0) - (account?.free_credits ?? 0);
+  const bought = (account?.credits ?? 0) - (account?.free_credits ?? 0)
+    - (account?.plan_credits ?? 0);
   if (chipIn) chipIn.hidden = Boolean(bought > 0 || account?.subscribed);
   el.stop.hidden = true;
   el.stop.disabled = false;

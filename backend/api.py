@@ -184,6 +184,10 @@ class AccountOut(BaseModel):
     free_credits_with_account: int
     # Whether a verified account gets one free credit each day.
     daily_free_credit: bool
+    # The part of `credits` that is left of this month's plan.
+    plan_credits: int
+    # A monthly plan with no limit: no server job spends a credit.
+    unlimited: bool
     subscribed: bool
     subscription_ends: str | None
     cloud_allowed: bool
@@ -311,6 +315,8 @@ def _account_out(session: Session, account: Account) -> AccountOut:
             else billing.free_credits_left(session, account, verified=True)
         ),
         daily_free_credit=settings.cloud_enabled and settings.daily_free_credit,
+        plan_credits=ent.plan_credits,
+        unlimited=ent.unlimited,
         subscribed=ent.subscribed,
         subscription_ends=(
             ent.subscription_ends.isoformat() if ent.subscription_ends else None

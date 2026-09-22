@@ -27,6 +27,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import func, or_, update
 from sqlalchemy.orm import Session
 
+from . import pricing
 from .db import Account, Job, JobStatus, SessionLocal, utcnow
 from .settings import settings
 
@@ -52,16 +53,20 @@ def _aware(when: datetime | None) -> datetime | None:
 
 @dataclass(frozen=True)
 class Entitlement:
-    # Every credit the account can spend now: the bought and the free ones.
+    # Every credit the account can spend now: bought, free and monthly ones.
     credits: int
     # The part of `credits` that is free.
     free_credits: int
+    # The part of `credits` that is left of this month's plan.
+    plan_credits: int
     subscribed: bool
+    # A subscription with no monthly limit: no job spends a credit.
+    unlimited: bool
     subscription_ends: datetime | None
 
     @property
     def cloud_allowed(self) -> bool:
-        return self.subscribed or self.credits > 0
+        return self.unlimited or self.credits > 0
 
 
 def is_subscribed(account: Account) -> bool:
@@ -69,6 +74,26 @@ def is_subscribed(account: Account) -> bool:
         return False
     ends = _aware(account.subscription_period_end)
     return ends is None or ends + _GRACE > utcnow()
+
+
+def subscription_plan(account: Account) -> pricing.Plan | None:
+    """The plan of an active subscription. None without one, or when the plan
+    is not in the catalogue (a sold plan must be retired, not deleted)."""
+    if not is_subscribed(account):
+        return None
+    return pricing.get(account.subscription_plan_id or "", retired=True)
+
+
+def is_unlimited(account: Account) -> bool:
+    plan = subscription_plan(account)
+    return plan is not None and plan.recurring and plan.credits is None
+
+
+def plan_credits_left(account: Account) -> int:
+    plan = subscription_plan(account)
+    if plan is None or not plan.recurring or plan.credits is None:
+        return 0
+    return max(0, plan.credits - account.subscription_credits_used)
 
 
 def _today() -> date:
@@ -123,12 +148,30 @@ def daily_credit_left(account: Account) -> int:
 
 def check(session: Session, account: Account) -> Entitlement:
     free = free_credits_left(session, account) + daily_credit_left(account)
+    monthly = plan_credits_left(account)
     return Entitlement(
-        credits=account.purchased_credits + free,
+        credits=account.purchased_credits + free + monthly,
         free_credits=free,
+        plan_credits=monthly,
         subscribed=is_subscribed(account),
+        unlimited=is_unlimited(account),
         subscription_ends=_aware(account.subscription_period_end),
     )
+
+
+def _spend_plan_credit(session: Session, account: Account) -> bool:
+    """Take one book of this month's plan, atomically. False if none is left."""
+    plan = subscription_plan(account)
+    if plan is None or not plan.recurring or plan.credits is None:
+        return False
+    taken = session.execute(
+        update(Account)
+        .where(Account.id == account.id,
+               Account.subscription_credits_used < plan.credits)
+        .values(subscription_credits_used=Account.subscription_credits_used + 1)
+    ).rowcount
+    session.refresh(account)
+    return bool(taken)
 
 
 def _spend_daily_credit(session: Session, account: Account) -> date | None:
@@ -177,17 +220,21 @@ def authorize_start(session: Session, account: Account, job: Job) -> None:
     """Charge what starting `job` costs, or raise PaymentRequired.
 
     Where the job runs sets its tier: a browser job is free, a server job is
-    a cloud job. A cloud job spends the daily credit first (it does not
-    carry over), then a free credit, then a bought one.
+    a cloud job. An unlimited plan pays for a cloud job. Else the job spends
+    the credit that ends first: the daily credit, then a book of this month's
+    plan, then a free credit, then a bought one.
     """
     job.tier = FREE if job.local else CLOUD
     job.billed, job.credit_spent, job.free_credit_spent = 0, 0, 0
-    job.daily_credit_on = None
-    if job.local or not settings.billing_enabled or is_subscribed(account):
+    job.plan_credit_spent, job.daily_credit_on = 0, None
+    if job.local or not settings.billing_enabled or is_unlimited(account):
         return
     day = _spend_daily_credit(session, account)
     if day is not None:
         job.daily_credit_on = day
+        return
+    if _spend_plan_credit(session, account):
+        job.plan_credit_spent = 1
         return
     if _spend_free_credit(session, account):
         job.free_credit_spent = 1
@@ -217,6 +264,13 @@ def refund(session: Session, job: Job) -> None:
             .values(free_credits_used=Account.free_credits_used - 1)
         )
         job.free_credit_spent = 0
+    if job.plan_credit_spent:
+        session.execute(
+            update(Account)
+            .where(Account.id == job.account_id, Account.subscription_credits_used > 0)
+            .values(subscription_credits_used=Account.subscription_credits_used - 1)
+        )
+        job.plan_credit_spent = 0
     if job.daily_credit_on is not None:
         # Only the credit of the same day comes back: a later day has its own.
         session.execute(

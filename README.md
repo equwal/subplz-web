@@ -359,8 +359,22 @@ cancelled gets the credit back.
   server converted for it (`SUBPLZ_WEB_BOOKS_PER_BONUS_CREDIT`). Books
   converted in the browser do not count, because the server cannot check them.
 
-A server job spends the daily credit first, then a free credit, then a bought
-one. The account counts the free credits apart from the bought ones
+**Monthly plans.** A plan renews each month until the customer cancels it in
+Stripe's customer portal ("Manage plan" on the page).
+
+| Plan | Price | Books |
+|---|---|---|
+| `month10` | $4.99 a month | 10 a month |
+| `month30` | $9.99 a month | 30 a month |
+| `unlimited` | $50.00 a month | no limit, one book at a time |
+
+The books of a month do not carry over: a new `current_period_end` from Stripe
+sets `subscription_credits_used` back to 0. Retire a plan that was sold
+(`pricing.RETIRED_PLANS`); do not delete it, or its subscribers get nothing.
+
+A server job spends the credit that ends first: the daily credit, then a book
+of this month's plan, then a free credit, then a bought one. An unlimited plan
+spends nothing. The account counts the free credits apart from the bought ones
 (`free_credits_used`), so a refund of bought credits never pays out a free one.
 
 A switch above the drop zone says where the work is done. Each visit starts
@@ -401,9 +415,27 @@ tools/set-secret.sh SUBPLZ_WEB_SMTP_PASSWORD           # for sign-in emails
 
 In Stripe: Developers -> Webhooks -> add `https://<host>/api/billing/webhook`
 with `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-`customer.subscription.created`, `.updated` and `.deleted`. Then set
-`SUBPLZ_WEB_BILLING_ENABLED=true`, `SUBPLZ_WEB_PUBLIC_BASE_URL`,
-`SUBPLZ_WEB_COOKIE_SECURE=true` and the `SMTP_*` values in `.env` and restart.
+`customer.subscription.created`, `.updated` and `.deleted`. The monthly plans
+need the three subscription events, and the customer portal (Settings ->
+Billing -> Customer portal: let customers cancel at the end of the period and
+update the card, then save). Then set `SUBPLZ_WEB_BILLING_ENABLED=true`,
+`SUBPLZ_WEB_PUBLIC_BASE_URL`, `SUBPLZ_WEB_COOKIE_SECURE=true` and the `SMTP_*`
+values in `.env` and restart.
+
+Sign-in email uses plain SMTP, so any provider works. With Resend: add the
+domain in Resend, add the DNS records that it shows (they sit on a `send`
+subdomain and `resend._domainkey`, so existing mail forwarding stays), create
+an API key with sending access, and set:
+
+```bash
+SUBPLZ_WEB_SMTP_HOST=smtp.resend.com
+SUBPLZ_WEB_SMTP_PORT=587
+SUBPLZ_WEB_SMTP_USER=resend
+tools/set-secret.sh SUBPLZ_WEB_SMTP_PASSWORD   # the Resend API key
+```
+
+Opening the emailed link verifies the address. A verified address gets the
+free credits of an account (see *Free credits*).
 
 Not handled: refunds and disputes (do them in the Stripe dashboard and adjust
 `purchased_credits` by hand), and tax (Stripe Tax is one checkout parameter away

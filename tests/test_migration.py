@@ -74,10 +74,12 @@ def test_old_database_is_upgraded_in_place(tmp_path):
 
     con = sqlite3.connect(db)
     cols = lambda t: {r[1] for r in con.execute(f"PRAGMA table_info({t})")}  # noqa: E731
-    assert {"tier", "credit_spent", "free_credit_spent", "daily_credit_on"} <= cols("jobs")
+    assert {"tier", "credit_spent", "free_credit_spent", "daily_credit_on",
+            "plan_credit_spent"} <= cols("jobs")
     assert {"merged_into", "subscription_id", "subscription_status",
             "subscription_period_end", "free_credits_used", "email_verified",
-            "daily_credit_on"} <= cols("accounts")
+            "daily_credit_on", "subscription_plan_id",
+            "subscription_credits_used"} <= cols("accounts")
     tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"login_tokens", "purchases"} <= tables
     # The unique email index has to exist, or two accounts could share one.
