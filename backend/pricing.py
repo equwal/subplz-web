@@ -23,9 +23,10 @@ a 10-hour audiobook is 600 minutes, so it would cost ~$100 at Sonix's rate.
 
 What is free and what is paid is split by where the work is done. In the
 visitor's browser a conversion costs this server nothing: it is free, without
-limit, with each output. On this server's hardware (a large speech model on a
-GPU: minutes and not hours, from any device) a book takes one credit. The code
-is public, so what is sold is the use of these machines and nothing else.
+limit, with each output. On this server's hardware (Whisper tiny on a CPU, one
+book at a time: about 2 hours for a 10-hour book, from any device) a book takes
+one credit. The code is public, so what is sold is the use of these machines
+and nothing else.
 
 A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
 buyer wraps the ElevenLabs API; below $3 the fixed card fee takes too much.
@@ -34,9 +35,14 @@ one heavy user of an unlimited plan costs more than the plan brings in.
 
   free              in the browser: no limit, each output
   10-book pack      $4.99    ($0.50/book)
+  100-book pack     $39.99   ($0.40/book, 20% off: the middle of what credit
+                             packs give at 10x volume)
 
-The owner set $4.99 for ten books on 2026-09-22. The packs sold before that
-(one book $4.99, five $16.99, twenty $39) are in RETIRED_PLANS.
+The owner set $4.99 for ten books on 2026-09-22, and asked for bigger packs the
+same day. There is no 500-book pack: one such sale holds this one CPU server
+for about six weeks. A buyer who needs more books buys the 100-book pack again.
+The packs sold before that (one book $4.99, five $16.99, twenty $39) are in
+RETIRED_PLANS.
 
 Every number is overridable by env var; these are defaults, not decisions cast
 in code. An operator who wants a recurring plan can add one with
@@ -79,6 +85,14 @@ DEFAULT_PLANS: list[Plan] = [
         credits=10,
         price_cents=499,
         blurb="Ten books on our server, from any device. Credits never expire.",
+    ),
+    Plan(
+        id="pack100",
+        name="100 books",
+        credits=100,
+        price_cents=3999,
+        blurb="For a whole library. Our server does one book at a time: about "
+              "2 hours for a 10-hour book. Credits never expire.",
     ),
 ]
 

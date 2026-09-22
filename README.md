@@ -325,11 +325,12 @@ use of its operator's machines, and nothing else.
 | Tier | Where it runs | You get | Costs |
 |---|---|---|---|
 | free | the visitor's browser (or the Android app) | each output: `.srt`, `.mkv`, `.mp4`, the read-along `.epub` | nothing, without limit |
-| cloud | this server's hardware: a large speech model on a GPU | the same, in minutes and not hours, from any device | one credit |
+| cloud | this server's hardware: Whisper tiny on a CPU, one book at a time | the same, from any device, with the tab closed: about 2 hours for a 10-hour book | one credit |
 
 | Plan | Price | Per book |
 |---|---|---|
 | 10 books | $4.99 | $0.50 |
+| 100 books | $39.99 | $0.40 |
 
 A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
 buyer wraps a raw alignment API (ElevenLabs: $2.20 for a 10-hour book). Below
