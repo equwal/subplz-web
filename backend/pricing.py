@@ -37,12 +37,13 @@ one heavy user of an unlimited plan costs more than the plan brings in.
   10-book pack      $4.99    ($0.50/book)
   100-book pack     $39.99   ($0.40/book, 20% off: the middle of what credit
                              packs give at 10x volume)
+  500-book pack     $174.99  ($0.35/book, 30% off)
 
 The owner set $4.99 for ten books on 2026-09-22, and asked for bigger packs the
-same day. There is no 500-book pack: one such sale holds this one CPU server
-for about six weeks. A buyer who needs more books buys the 100-book pack again.
-The packs sold before that (one book $4.99, five $16.99, twenty $39) are in
-RETIRED_PLANS.
+same day. The owner chose to sell the 500-book pack against the advice of the
+financial advocate: one such sale can hold this one CPU server for about six
+weeks, so the pack says how fast the server works. The packs sold before that
+(one book $4.99, five $16.99, twenty $39) are in RETIRED_PLANS.
 
 Every number is overridable by env var; these are defaults, not decisions cast
 in code. An operator who wants a recurring plan can add one with
@@ -93,6 +94,15 @@ DEFAULT_PLANS: list[Plan] = [
         price_cents=3999,
         blurb="For a whole library. Our server does one book at a time: about "
               "2 hours for a 10-hour book. Credits never expire.",
+    ),
+    Plan(
+        id="pack500",
+        name="500 books",
+        credits=500,
+        price_cents=17499,
+        blurb="For a very large library. Our server does one book at a time: "
+              "about 2 hours for a 10-hour book, so 500 long books take weeks. "
+              "Credits never expire.",
     ),
 ]
 

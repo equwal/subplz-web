@@ -168,7 +168,7 @@ def test_checkout_sends_stripe_the_right_order(client, monkeypatch):
 def test_ten_books_cost_4_99_and_no_unlimited_plan_is_sold(client):
     plans = client.get("/api/pricing").json()["plans"]
     assert [(p["id"], p["credits"], p["price_cents"]) for p in plans] == [
-        ("pack10", 10, 499), ("pack100", 100, 3999)]
+        ("pack10", 10, 499), ("pack100", 100, 3999), ("pack500", 500, 17499)]
     assert not any(p["recurring"] for p in plans)
 
 
@@ -177,14 +177,14 @@ def test_bigger_packs_cost_less_a_book(client):
     # more in all, or the smaller packs are pointless.
     plans = client.get("/api/pricing").json()["plans"]
     packs = sorted((p for p in plans if not p["recurring"]), key=lambda p: p["credits"])
-    assert [p["credits"] for p in packs] == [10, 100]
+    assert [p["credits"] for p in packs] == [10, 100, 500]
     per_book = [p["price_cents"] / p["credits"] for p in packs]
     assert all(small > big for small, big in zip(per_book, per_book[1:]))
     totals = [p["price_cents"] for p in packs]
     assert all(small < big for small, big in zip(totals, totals[1:]))
 
 
-@pytest.mark.parametrize("plan_id", ["pack100"])
+@pytest.mark.parametrize("plan_id", ["pack100", "pack500"])
 def test_a_big_pack_checks_out_at_its_price_and_credits_its_books(client, monkeypatch, plan_id):
     plan = pricing.get(plan_id)
     assert plan is not None
