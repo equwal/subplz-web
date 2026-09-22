@@ -7,7 +7,9 @@ The line between free and paid is where the work is done, not what comes out:
           gives each output: subtitles, videos, the read-along book.
   cloud   The job runs on this server's hardware: a large speech model on a
           GPU, minutes and not hours, from any device. One credit for a book,
-          or nothing on a recurring plan if the operator sells one.
+          or nothing on a recurring plan if the operator sells one. Each
+          visitor gets some free credits (settings.free_credits_*); a job
+          spends those before the bought ones.
 
 All of the code is public and anyone may host it. What is sold is the use of
 this operator's machines.
@@ -50,7 +52,10 @@ def _aware(when: datetime | None) -> datetime | None:
 
 @dataclass(frozen=True)
 class Entitlement:
+    # Every credit the account can spend now: the bought and the free ones.
     credits: int
+    # The part of `credits` that is free.
+    free_credits: int
     subscribed: bool
     subscription_ends: datetime | None
 
@@ -66,12 +71,51 @@ def is_subscribed(account: Account) -> bool:
     return ends is None or ends + _GRACE > utcnow()
 
 
+def free_allowance(signed_in: bool) -> int:
+    """The free credits that an account gets in all.
+
+    Zero while this server takes no conversions: a free credit must not
+    promise a job that cannot run.
+    """
+    if not settings.cloud_enabled:
+        return 0
+    if signed_in:
+        return settings.free_credits_signed_in
+    return settings.free_credits_anonymous
+
+
+def free_credits_left(account: Account, signed_in: bool | None = None) -> int:
+    """The free credits that `account` can spend now.
+
+    Give `signed_in=True` to get the number after a sign-in.
+    """
+    if signed_in is None:
+        signed_in = account.signed_in
+    return max(0, free_allowance(signed_in) - account.free_credits_used)
+
+
 def check(account: Account) -> Entitlement:
+    free = free_credits_left(account)
     return Entitlement(
-        credits=account.purchased_credits,
+        credits=account.purchased_credits + free,
+        free_credits=free,
         subscribed=is_subscribed(account),
         subscription_ends=_aware(account.subscription_period_end),
     )
+
+
+def _spend_free_credit(session: Session, account: Account) -> bool:
+    """Take one free credit, atomically. False if there was none to take."""
+    taken = session.execute(
+        update(Account)
+        .where(
+            Account.id == account.id,
+            Account.free_credits_used < free_allowance(account.signed_in),
+        )
+        .values(free_credits_used=Account.free_credits_used + 1)
+    ).rowcount
+    session.refresh(account)
+    return bool(taken)
 
 
 def _spend_credit(session: Session, account: Account) -> bool:
@@ -89,11 +133,14 @@ def authorize_start(session: Session, account: Account, job: Job) -> None:
     """Charge what starting `job` costs, or raise PaymentRequired.
 
     Where the job runs sets its tier: a browser job is free, a server job is
-    a cloud job.
+    a cloud job. A cloud job spends a free credit first, then a bought one.
     """
     job.tier = FREE if job.local else CLOUD
-    job.billed, job.credit_spent = 0, 0
+    job.billed, job.credit_spent, job.free_credit_spent = 0, 0, 0
     if job.local or not settings.billing_enabled or is_subscribed(account):
+        return
+    if _spend_free_credit(session, account):
+        job.free_credit_spent = 1
         return
     if not _spend_credit(session, account):
         raise PaymentRequired(
@@ -113,6 +160,13 @@ def refund(session: Session, job: Job) -> None:
             .values(purchased_credits=Account.purchased_credits + 1)
         )
         job.credit_spent = 0
+    if job.free_credit_spent:
+        session.execute(
+            update(Account)
+            .where(Account.id == job.account_id, Account.free_credits_used > 0)
+            .values(free_credits_used=Account.free_credits_used - 1)
+        )
+        job.free_credit_spent = 0
     session.add(job)
 
 

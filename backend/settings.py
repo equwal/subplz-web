@@ -73,6 +73,13 @@ class Settings(BaseSettings):
     contact_email: str = ""
     # Off on localhost so nothing blocks you; flip on for the public release.
     billing_enabled: bool = False
+    # Free credits for conversions on this server. They exist only while
+    # cloud_enabled is on. A visitor without an account gets
+    # free_credits_anonymous. An account gets free_credits_signed_in in all:
+    # a free credit that one of its devices used before sign-in counts toward
+    # it. See billing.py.
+    free_credits_anonymous: int = 1
+    free_credits_signed_in: int = 10
 
     # --- accounts & payments -----------------------------------------------
     # What customers see on the Stripe page and in the sign-in email.

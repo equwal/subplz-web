@@ -342,10 +342,19 @@ A job in the browser costs the server nothing, so it is never counted and never
 refused. A server job takes its credit at the start. A job that fails or is
 cancelled gets the credit back.
 
-The page offers the server job on the confirm screen ("Convert on our server"):
-the files are uploaded, the job runs on the server, and the result waits in the
-list of conversions, so the visitor can close the tab. The page asks for the
-credit before the upload, not after it.
+**Free credits.** While `SUBPLZ_WEB_CLOUD_ENABLED` is true, a visitor without
+an account gets one free credit (`SUBPLZ_WEB_FREE_CREDITS_ANONYMOUS`), and an
+account gets ten in all (`SUBPLZ_WEB_FREE_CREDITS_SIGNED_IN`). A free credit
+that a device used before sign-in counts toward the ten, and a second device
+adds no free credits. A server job spends the free credits first. The account
+counts the free credits apart from the bought ones (`free_credits_used`), so
+a refund of bought credits never pays out a free one.
+
+A switch above the drop zone says where the work is done. Each visit starts
+with it on ("Convert in this browser (JavaScript)"), before a file is chosen.
+Off: the files are uploaded, the job runs on the server, and the result waits
+in the list of conversions, so the visitor can close the tab. The page asks
+for the credit before the upload, not after it.
 
 The server does not keep a visitor's files past their use
 (`backend/retention.py`, once an hour): uploads go when the job succeeds, or

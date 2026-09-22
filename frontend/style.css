@@ -300,10 +300,18 @@ button.compact { padding: 6px 12px; font-size: 13px; }
 }
 .tag.free { background: var(--ok-soft); color: var(--ok); }
 
-.mode { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
-.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+/* ---------- where the work is done ---------- */
+.mode {
+  margin: 0 0 14px; padding: 14px 18px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel);
+}
+/* Green while the work stays in this tab: the free path must be easy to see. */
+.mode:has(input:checked) { border-color: var(--ok); background: var(--ok-soft); }
+.mode p { margin: 4px 0 0 30px; }
+.switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 16px; }
+.switch:has(input:disabled) { cursor: default; }
 .switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--ok); flex: none; }
-.switch input:disabled + span { color: var(--muted); }
 
 .share-form { display: grid; gap: 6px; margin: 14px 0 8px; }
 .share-form label { font-size: 13px; font-weight: 600; margin-top: 6px; }

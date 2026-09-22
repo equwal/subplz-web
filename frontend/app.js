@@ -9,7 +9,7 @@ const el = {
   confirm: $('confirm'), cAudio: $('c-audio'), cText: $('c-text'),
   language: $('language'), detected: $('detected'), splitnote: $('splitnote'),
   start: $('start'), discard: $('discard'), eta: $('eta'),
-  inBrowser: $('in-browser'),
+  inBrowser: $('in-browser'), modeNote: $('mode-note'),
   jobsSection: $('jobs-section'), jobs: $('jobs'), quota: $('quota'),
   freetier: $('freetier'), staged: $('staged'), dzTitle: $('dz-title'),
   match: $('match'), matchBadge: $('match-badge'),
@@ -20,6 +20,7 @@ const el = {
   signinEmail: $('signin-email'), signinSend: $('signin-send'),
   signinNote: $('signin-note'),
   pricingDialog: $('pricing-dialog'), pricingWhy: $('pricing-why'),
+  pricingSignin: $('pricing-signin'), pricingSigninBtn: $('pricing-signin-btn'),
   plans: $('plans'), toast: $('toast'),
   working: $('working'), workTitle: $('work-title'), workBar: $('work-bar'),
   workMeta: $('work-meta'), stop: $('stop'), results: $('results'),
@@ -126,6 +127,9 @@ function renderAccount() {
   el.who.textContent = signedIn ? a.email : '';
   el.signoutBtn.hidden = !signedIn;
   el.signinBtn.hidden = signedIn || !a.email_sign_in_available;
+  const offer = signInOffer();
+  el.signinBtn.textContent = offer
+    ? `Sign in for ${offer} free credit${offer === 1 ? '' : 's'}` : 'Sign in';
 
   // What is sold is conversion on this server's hardware. Nothing is for sale
   // until that is connected; in this tab each output is free.
@@ -134,9 +138,20 @@ function renderAccount() {
   el.portalBtn.hidden = !(selling && a.subscribed);
   el.quota.hidden = !selling;
   if (selling) {
+    // Say "free" while each credit in hand is a free one.
+    const free = a.credits > 0 && a.free_credits === a.credits ? 'free ' : '';
     el.quota.textContent = a.subscribed ? 'Cloud plan'
-      : `${a.credits} cloud credit${a.credits === 1 ? '' : 's'}`;
+      : `${a.credits} ${free}cloud credit${a.credits === 1 ? '' : 's'}`;
   }
+  renderMode();
+}
+
+/* The free credits that a sign-in gives this visitor. Zero when there is
+   nothing to offer: signed in already, no sign-in email, or billing off. */
+function signInOffer() {
+  const a = account;
+  if (!a || signedIn || !a.email_sign_in_available || !a.billing_enabled) return 0;
+  return a.free_credits_with_account || 0;
 }
 
 let toastTimer = null;
@@ -334,40 +349,47 @@ el.discard.addEventListener('click', () => { clearError(); resetToDrop(); });
 /* ---------------- where the work is done ---------------- */
 
 /* In this browser (JavaScript, free, nothing uploaded) is the default. The
-   switch turns that off and sends the job to the server instead: for a phone,
-   an old computer, or a tab that has to close. The choice is kept. */
-const MODE_KEY = 'subread-mode';
+   switch is above the drop zone, so the choice shows before a file is chosen,
+   and each visit starts with the switch on. Off sends the job to the server:
+   for a phone, an old computer, or a tab that has to close. */
 let browserPlan = { note: '', label: 'Start' };
 
 function serverOffered() { return !!account?.cloud_available; }
 
 function inBrowser() { return !serverOffered() || el.inBrowser.checked; }
 
+/* What a job on the server costs this visitor, as a sentence. */
+function serverPrice() {
+  const a = account;
+  if (!a?.billing_enabled) return '';
+  if (a.subscribed) return ' Included in your plan.';
+  if (a.credits > 0) {
+    const free = a.free_credits === a.credits ? ' free' : '';
+    return ` One credit a book; you have ${a.credits}${free}.`;
+  }
+  return ' One credit a book.';
+}
+
 function renderMode() {
   const offered = serverOffered();
   el.inBrowser.disabled = !offered;
-  el.inBrowser.checked = !offered || localStorage.getItem(MODE_KEY) !== 'server';
+  if (!offered) el.inBrowser.checked = true;
   if (inBrowser()) {
+    el.modeNote.textContent = 'Free, without limit, and your files are not uploaded.' +
+      (offered ? ' Turn this off to have our server do the work.' + serverPrice() : '');
     el.start.textContent = browserPlan.label;
     el.eta.textContent = browserPlan.note +
       (offered ? '' : ' Our server is not taking conversions at the moment, so this is the one way.');
     return;
   }
-  const a = account;
-  const price = !a.billing_enabled ? ''
-    : a.subscribed ? ' Included in your plan.'
-    : a.credits > 0 ? ` One credit; you have ${a.credits}.`
-    : ' One credit.';
+  el.modeNote.textContent = 'Off: your files are uploaded, and our server does the work.' + serverPrice();
   el.start.textContent = 'Upload and convert on our server';
   el.eta.textContent =
     'The files are uploaded, the work is done on our server, and the result waits for you on this page, ' +
-    'so you can close this tab. The files are deleted after the job.' + price;
+    'so you can close this tab. The files are deleted after the job.' + serverPrice();
 }
 
-el.inBrowser.addEventListener('change', () => {
-  try { localStorage.setItem(MODE_KEY, el.inBrowser.checked ? 'browser' : 'server'); } catch { /* private window */ }
-  renderMode();
-});
+el.inBrowser.addEventListener('change', renderMode);
 
 function startOnServer() {
   if (!draft || running) return;
@@ -516,8 +538,10 @@ function renderWorking(st) {
 function showResults(r) {
   // The ask goes to people who got a book for nothing, at the moment it worked.
   // Not to a customer: someone who pays for credits has done their part.
+  // Free credits do not make a customer, so count the bought ones only.
   const chipIn = document.getElementById('chip-in');
-  if (chipIn) chipIn.hidden = Boolean(account?.credits > 0 || account?.subscribed);
+  const bought = (account?.credits ?? 0) - (account?.free_credits ?? 0);
+  if (chipIn) chipIn.hidden = Boolean(bought > 0 || account?.subscribed);
   el.stop.hidden = true;
   el.stop.disabled = false;
   el.results.hidden = false;
@@ -861,6 +885,10 @@ el.picker.addEventListener('change', () => {
 async function openPricing(why) {
   el.pricingWhy.textContent = why ||
     'In this tab a conversion is free, without limit. A credit converts a book on our server: from any device, and you can close the tab.';
+  const offer = signInOffer();
+  el.pricingSignin.hidden = !offer;
+  el.pricingSigninBtn.textContent =
+    `Or sign in with your email and get ${offer} free credit${offer === 1 ? '' : 's'}.`;
   el.plans.innerHTML = '<p class="muted">Loading…</p>';
   if (!el.pricingDialog.open) el.pricingDialog.showModal();
 
@@ -926,11 +954,14 @@ el.portalBtn.addEventListener('click', async () => {
 
 /* ---------------- sign in ---------------- */
 
-el.signinBtn.addEventListener('click', () => {
+function openSignIn() {
   el.signinNote.hidden = true;
   el.signinDialog.showModal();
   el.signinEmail.focus();
-});
+}
+
+el.signinBtn.addEventListener('click', openSignIn);
+el.pricingSigninBtn.addEventListener('click', () => { el.pricingDialog.close(); openSignIn(); });
 
 el.signinForm.addEventListener('submit', async (e) => {
   e.preventDefault();
