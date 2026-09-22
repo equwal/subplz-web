@@ -70,12 +70,20 @@ class Settings(BaseSettings):
     # Off on localhost so nothing blocks you; flip on for the public release.
     billing_enabled: bool = False
     # Free credits for conversions on this server. They exist only while
-    # cloud_enabled is on. A visitor without an account gets
-    # free_credits_anonymous. An account gets free_credits_signed_in in all:
-    # a free credit that one of its devices used before sign-in counts toward
-    # it. See billing.py.
+    # cloud_enabled is on. See billing.py.
+    # A visitor without a verified email gets free_credits_anonymous. A buyer
+    # whose email came only from Stripe is in this group.
     free_credits_anonymous: int = 1
-    free_credits_signed_in: int = 10
+    # An account whose email is verified (by an emailed sign-in link) gets
+    # free_credits_verified in all: a free credit that one of its devices
+    # used before counts toward it.
+    free_credits_verified: int = 2
+    # A verified account also gets one free credit each day. It does not
+    # carry over to the next day.
+    daily_free_credit: bool = True
+    # A verified account gets one more free credit for each this many books
+    # that the server converted for it. 0 turns this off.
+    books_per_bonus_credit: int = 2
 
     # --- accounts & payments -----------------------------------------------
     # What customers see on the Stripe page and in the sign-in email.

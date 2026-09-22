@@ -2,10 +2,11 @@
 
 import enum
 import secrets
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
+    Date,
     DateTime,
     Enum,
     Float,
@@ -81,6 +82,13 @@ class Account(Base):
     free_credits_used: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
+    # 1 once the owner of the email opened a sign-in link that we sent to it.
+    # An email that came only from a payment is not verified.
+    email_verified: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    # The last day (UTC) on which the account spent its daily free credit.
+    daily_credit_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # The unlimited plan. Status is Stripe's own word for it (active, past_due,
     # canceled...); period_end is when the paid-for time runs out.
@@ -88,6 +96,12 @@ class Account(Base):
     subscription_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     subscription_period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # The plan of the subscription (pricing.Plan.id), and how many of its
+    # books this month's jobs used. A new month sets the count back to 0.
+    subscription_plan_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    subscription_credits_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
     )
 
     # Set when this anonymous row was folded into a signed-in account. A
@@ -159,6 +173,12 @@ class Job(Base):
     # 1 if a free credit was spent on this job. A failed run gives it back to
     # the free credits, not to the bought ones.
     free_credit_spent: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    # Set if this job spent a daily free credit: the day of that credit.
+    daily_credit_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # 1 if this job spent one of the monthly books of a subscription.
+    plan_credit_spent: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
 

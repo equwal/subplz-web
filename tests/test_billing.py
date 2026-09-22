@@ -165,10 +165,44 @@ def test_checkout_sends_stripe_the_right_order(client, monkeypatch):
     assert seen["customer_creation"] == "always"
 
 
-def test_ten_books_cost_4_99_and_no_unlimited_plan_is_sold(client):
+def test_the_packs_and_the_monthly_plans_for_sale(client):
     plans = client.get("/api/pricing").json()["plans"]
-    assert [(p["id"], p["credits"], p["price_cents"]) for p in plans] == [("pack10", 10, 499)]
-    assert not any(p["recurring"] for p in plans)
+    row = lambda p: (p["id"], p["credits"], p["price_cents"])  # noqa: E731
+    assert [row(p) for p in plans if not p["recurring"]] == [
+        ("pack10", 10, 499), ("pack100", 100, 3999), ("pack500", 500, 17499)]
+    assert [row(p) for p in plans if p["recurring"]] == [
+        ("month10", 10, 499), ("month30", 30, 999), ("unlimited", None, 5000)]
+
+
+def test_bigger_packs_cost_less_a_book(client):
+    # A bigger pack must cost less a book, or nobody buys it. It must also cost
+    # more in all, or the smaller packs are pointless.
+    plans = client.get("/api/pricing").json()["plans"]
+    packs = sorted((p for p in plans if not p["recurring"]), key=lambda p: p["credits"])
+    assert [p["credits"] for p in packs] == [10, 100, 500]
+    per_book = [p["price_cents"] / p["credits"] for p in packs]
+    assert all(small > big for small, big in zip(per_book, per_book[1:]))
+    totals = [p["price_cents"] for p in packs]
+    assert all(small < big for small, big in zip(totals, totals[1:]))
+
+
+@pytest.mark.parametrize("plan_id", ["pack100", "pack500"])
+def test_a_big_pack_checks_out_at_its_price_and_credits_its_books(client, monkeypatch, plan_id):
+    plan = pricing.get(plan_id)
+    assert plan is not None
+    seen = {}
+
+    def create(**params):
+        seen.update(params)
+        return FakeStripeObject({"id": "cs_new", "url": "https://stripe.test/pay"})
+
+    monkeypatch.setattr(stripe.checkout.Session, "create", create)
+    assert client.post("/api/billing/checkout", json={"plan_id": plan_id}).status_code == 200
+    assert seen["metadata"]["plan_id"] == plan_id
+    assert seen["line_items"][0]["price_data"]["unit_amount"] == plan.price_cents
+
+    buy(client, plan_id, email=f"{plan_id}-{time.time_ns()}@example.com")
+    assert client.get("/api/account").json()["credits"] == plan.credits
 
 
 def test_a_retired_plan_is_not_sold_but_a_late_payment_still_credits(client):
@@ -226,20 +260,21 @@ def test_return_trip_does_not_trust_an_unpaid_session(client, monkeypatch):
 
 # --- subscription ------------------------------------------------------------
 
-def subscription_event(kind, account, status, ends_in=30 * 86400, sub_id="sub_1"):
+def subscription_event(kind, account, status, ends_in=30 * 86400, sub_id="sub_1",
+                       plan_id="monthly"):
     return {
         "id": f"evt_{kind}_{time.time_ns()}",
         "type": f"customer.subscription.{kind}",
         "data": {"object": {
             "id": sub_id, "object": "subscription", "status": status,
-            "customer": "cus_sub", "metadata": {"account_id": account},
+            "customer": "cus_sub", "metadata": {"account_id": account, "plan_id": plan_id},
             # Where newer API versions put it; _period_end reads both places.
             "items": {"data": [{"current_period_end": int(time.time()) + ends_in}]},
         }},
     }
 
 
-def test_subscription_lifts_every_limit_then_lapses(client):
+def test_subscription_lifts_every_limit_then_lapses(client, monthly_plan):
     acct = account_id(client)
     assert post_webhook(client, subscription_event("created", acct, "active")).status_code == 200
 

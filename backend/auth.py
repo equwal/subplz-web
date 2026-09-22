@@ -82,5 +82,7 @@ def redeem(session: Session, token: str, device: Account) -> Account | None:
     # asked for it; when it is not (link opened on a phone), this still does
     # the right thing - the phone's anonymous work joins the account.
     owner = accounts.adopt_email(session, device, row.email)
+    # The link went to this address and came back: the address is verified.
+    owner.email_verified = 1
     session.commit()
     return owner

@@ -325,11 +325,13 @@ use of its operator's machines, and nothing else.
 | Tier | Where it runs | You get | Costs |
 |---|---|---|---|
 | free | the visitor's browser (or the Android app) | each output: `.srt`, `.mkv`, `.mp4`, the read-along `.epub` | nothing, without limit |
-| cloud | this server's hardware: a large speech model on a GPU | the same, in minutes and not hours, from any device | one credit |
+| cloud | this server's hardware: Whisper tiny on a CPU, one book at a time | the same, from any device, with the tab closed: about 2 hours for a 10-hour book | one credit |
 
 | Plan | Price | Per book |
 |---|---|---|
 | 10 books | $4.99 | $0.50 |
+| 100 books | $39.99 | $0.40 |
+| 500 books | $174.99 | $0.35 |
 
 A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
 buyer wraps a raw alignment API (ElevenLabs: $2.20 for a 10-hour book). Below
@@ -342,13 +344,38 @@ A job in the browser costs the server nothing, so it is never counted and never
 refused. A server job takes its credit at the start. A job that fails or is
 cancelled gets the credit back.
 
-**Free credits.** While `SUBPLZ_WEB_CLOUD_ENABLED` is true, a visitor without
-an account gets one free credit (`SUBPLZ_WEB_FREE_CREDITS_ANONYMOUS`), and an
-account gets ten in all (`SUBPLZ_WEB_FREE_CREDITS_SIGNED_IN`). A free credit
-that a device used before sign-in counts toward the ten, and a second device
-adds no free credits. A server job spends the free credits first. The account
-counts the free credits apart from the bought ones (`free_credits_used`), so
-a refund of bought credits never pays out a free one.
+**Free credits.** They exist only while `SUBPLZ_WEB_CLOUD_ENABLED` is true.
+
+- A visitor without a verified email gets one free credit
+  (`SUBPLZ_WEB_FREE_CREDITS_ANONYMOUS`). A buyer whose email came only from
+  Stripe is in this group.
+- An account whose email is verified gets two in all
+  (`SUBPLZ_WEB_FREE_CREDITS_VERIFIED`). The email is verified when its owner
+  opens a sign-in link that the server sent to it. A free credit that a device
+  used before counts toward the two, and a second device adds no free credits.
+- A verified account also gets one free credit each day
+  (`SUBPLZ_WEB_DAILY_FREE_CREDIT`). It does not carry over to the next day.
+- A verified account gets one more free credit for every two books that the
+  server converted for it (`SUBPLZ_WEB_BOOKS_PER_BONUS_CREDIT`). Books
+  converted in the browser do not count, because the server cannot check them.
+
+**Monthly plans.** A plan renews each month until the customer cancels it in
+Stripe's customer portal ("Manage plan" on the page).
+
+| Plan | Price | Books |
+|---|---|---|
+| `month10` | $4.99 a month | 10 a month |
+| `month30` | $9.99 a month | 30 a month |
+| `unlimited` | $50.00 a month | no limit, one book at a time |
+
+The books of a month do not carry over: a new `current_period_end` from Stripe
+sets `subscription_credits_used` back to 0. Retire a plan that was sold
+(`pricing.RETIRED_PLANS`); do not delete it, or its subscribers get nothing.
+
+A server job spends the credit that ends first: the daily credit, then a book
+of this month's plan, then a free credit, then a bought one. An unlimited plan
+spends nothing. The account counts the free credits apart from the bought ones
+(`free_credits_used`), so a refund of bought credits never pays out a free one.
 
 A switch above the drop zone says where the work is done. Each visit starts
 with it on ("Convert in this browser (JavaScript)"), before a file is chosen.
@@ -388,9 +415,27 @@ tools/set-secret.sh SUBPLZ_WEB_SMTP_PASSWORD           # for sign-in emails
 
 In Stripe: Developers -> Webhooks -> add `https://<host>/api/billing/webhook`
 with `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-`customer.subscription.created`, `.updated` and `.deleted`. Then set
-`SUBPLZ_WEB_BILLING_ENABLED=true`, `SUBPLZ_WEB_PUBLIC_BASE_URL`,
-`SUBPLZ_WEB_COOKIE_SECURE=true` and the `SMTP_*` values in `.env` and restart.
+`customer.subscription.created`, `.updated` and `.deleted`. The monthly plans
+need the three subscription events, and the customer portal (Settings ->
+Billing -> Customer portal: let customers cancel at the end of the period and
+update the card, then save). Then set `SUBPLZ_WEB_BILLING_ENABLED=true`,
+`SUBPLZ_WEB_PUBLIC_BASE_URL`, `SUBPLZ_WEB_COOKIE_SECURE=true` and the `SMTP_*`
+values in `.env` and restart.
+
+Sign-in email uses plain SMTP, so any provider works. With Resend: add the
+domain in Resend, add the DNS records that it shows (they sit on a `send`
+subdomain and `resend._domainkey`, so existing mail forwarding stays), create
+an API key with sending access, and set:
+
+```bash
+SUBPLZ_WEB_SMTP_HOST=smtp.resend.com
+SUBPLZ_WEB_SMTP_PORT=587
+SUBPLZ_WEB_SMTP_USER=resend
+tools/set-secret.sh SUBPLZ_WEB_SMTP_PASSWORD   # the Resend API key
+```
+
+Opening the emailed link verifies the address. A verified address gets the
+free credits of an account (see *Free credits*).
 
 Not handled: refunds and disputes (do them in the Stripe dashboard and adjust
 `purchased_credits` by hand), and tax (Stripe Tax is one checkout parameter away

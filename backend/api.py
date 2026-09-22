@@ -166,6 +166,8 @@ class AccountOut(BaseModel):
     id: str
     signed_in: bool
     email: str | None
+    # True once the owner opened a sign-in link sent to `email`.
+    email_verified: bool
     billing_enabled: bool
     # Whether the server can actually take money / send sign-in email yet.
     payments_available: bool
@@ -177,8 +179,15 @@ class AccountOut(BaseModel):
     credits: int
     # The part of `credits` that is free.
     free_credits: int
-    # The free credits this visitor has after a sign-in. Zero when signed in.
+    # The free credits (not the daily one) that this visitor has after the
+    # email is verified. Zero when it is verified.
     free_credits_with_account: int
+    # Whether a verified account gets one free credit each day.
+    daily_free_credit: bool
+    # The part of `credits` that is left of this month's plan.
+    plan_credits: int
+    # A monthly plan with no limit: no server job spends a credit.
+    unlimited: bool
     subscribed: bool
     subscription_ends: str | None
     cloud_allowed: bool
@@ -289,11 +298,12 @@ def get_account_info(
 
 
 def _account_out(session: Session, account: Account) -> AccountOut:
-    ent = billing.check(account)
+    ent = billing.check(session, account)
     return AccountOut(
         id=account.id,
         signed_in=account.signed_in,
         email=account.email,
+        email_verified=bool(account.email_verified),
         billing_enabled=settings.billing_enabled,
         payments_available=settings.payments_configured,
         email_sign_in_available=settings.sign_in_available,
@@ -301,9 +311,12 @@ def _account_out(session: Session, account: Account) -> AccountOut:
         credits=ent.credits,
         free_credits=ent.free_credits,
         free_credits_with_account=(
-            0 if account.signed_in
-            else billing.free_credits_left(account, signed_in=True)
+            0 if account.email_verified
+            else billing.free_credits_left(session, account, verified=True)
         ),
+        daily_free_credit=settings.cloud_enabled and settings.daily_free_credit,
+        plan_credits=ent.plan_credits,
+        unlimited=ent.unlimited,
         subscribed=ent.subscribed,
         subscription_ends=(
             ent.subscription_ends.isoformat() if ent.subscription_ends else None
