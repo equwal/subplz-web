@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SubRead — read along with your audiobook</title>
-<link rel="stylesheet" href="/style.css?v=11">
+<link rel="stylesheet" href="/style.css?v=12">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 </head>
 <body>
@@ -134,16 +134,18 @@
       <ul id="match-warnings" class="match-warnings"></ul>
     </div>
 
+    <div class="mode">
+      <label class="switch">
+        <input type="checkbox" id="in-browser" checked>
+        <span>Convert in this browser (JavaScript). Off: our server does it.</span>
+      </label>
+    </div>
+
     <div class="actions">
       <button id="start" class="primary">Start alignment</button>
       <button id="discard" class="ghost">Discard</button>
     </div>
     <p class="muted small" id="eta"></p>
-
-    <div id="cloud" class="cloud" hidden>
-      <p><strong>Or let our server do it.</strong> <span id="cloud-note"></span></p>
-      <button id="start-cloud" class="ghost">Convert on our server</button>
-    </div>
   </section>
 
   <!-- step 3: the job, running in this tab -->
@@ -233,6 +235,6 @@
 
 <div id="toast" class="toast" hidden role="status"></div>
 
-<script type="module" src="/app.js?v=11"></script>
+<script type="module" src="/app.js?v=12"></script>
 </body>
 </html>

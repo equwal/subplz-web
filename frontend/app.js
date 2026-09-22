@@ -9,7 +9,7 @@ const el = {
   confirm: $('confirm'), cAudio: $('c-audio'), cText: $('c-text'),
   language: $('language'), detected: $('detected'), splitnote: $('splitnote'),
   start: $('start'), discard: $('discard'), eta: $('eta'),
-  cloud: $('cloud'), cloudNote: $('cloud-note'), startCloud: $('start-cloud'),
+  inBrowser: $('in-browser'),
   jobsSection: $('jobs-section'), jobs: $('jobs'), quota: $('quota'),
   freetier: $('freetier'), staged: $('staged'), dzTitle: $('dz-title'),
   match: $('match'), matchBadge: $('match-badge'),
@@ -314,39 +314,62 @@ async function showConfirm() {
   const gpu = await hasWebGpu();
   const { savedProgress } = await import('/engine/job.js');
   const saved = await savedProgress(draft.audio, el.language.value);
-  el.eta.textContent =
-    (saved?.complete ? 'This audio was transcribed here before, so this will take seconds. '
+  browserPlan = {
+    note: (saved?.complete ? 'This audio was transcribed here before, so this will take seconds. '
       : saved?.doneUntil ? `Picks up where it stopped, ${fmtDuration(saved.doneUntil)} in. ` : '') +
-    'Everything runs in this tab: nothing is uploaded, and it has to stay open. ' +
-    (saved?.complete ? '' : gpu ? 'Expect roughly a quarter of the book\'s length.'
-      : 'This browser has no WebGPU, so expect about the book\'s own length — Chrome or Edge on a computer with a graphics card is several times faster.');
+      'Everything runs in this tab: nothing is uploaded, and it has to stay open. ' +
+      (saved?.complete ? '' : gpu ? 'Expect roughly a quarter of the book\'s length.'
+        : 'This browser has no WebGPU, so expect about the book\'s own length — Chrome or Edge on a computer with a graphics card is several times faster.'),
+    label: saved?.doneUntil && !saved.complete ? 'Continue' : 'Start',
+  };
 
-  el.start.textContent = saved?.doneUntil && !saved.complete ? 'Continue' : 'Start';
   el.confirm.hidden = false;
   el.start.disabled = false;
-  renderCloudOffer();
+  renderMode();
   el.confirm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 el.discard.addEventListener('click', () => { clearError(); resetToDrop(); });
 
-/* ---------------- the cloud: the same job, on the server's hardware ---------------- */
+/* ---------------- where the work is done ---------------- */
 
-function renderCloudOffer() {
+/* In this browser (JavaScript, free, nothing uploaded) is the default. The
+   switch turns that off and sends the job to the server instead: for a phone,
+   an old computer, or a tab that has to close. The choice is kept. */
+const MODE_KEY = 'subread-mode';
+let browserPlan = { note: '', label: 'Start' };
+
+function serverOffered() { return !!account?.cloud_available; }
+
+function inBrowser() { return !serverOffered() || el.inBrowser.checked; }
+
+function renderMode() {
+  const offered = serverOffered();
+  el.inBrowser.disabled = !offered;
+  el.inBrowser.checked = !offered || localStorage.getItem(MODE_KEY) !== 'server';
+  if (inBrowser()) {
+    el.start.textContent = browserPlan.label;
+    el.eta.textContent = browserPlan.note +
+      (offered ? '' : ' Our server is not taking conversions at the moment, so this is the one way.');
+    return;
+  }
   const a = account;
-  el.cloud.hidden = !a?.cloud_available;
-  if (el.cloud.hidden) return;
   const price = !a.billing_enabled ? ''
     : a.subscribed ? ' Included in your plan.'
     : a.credits > 0 ? ` One credit; you have ${a.credits}.`
     : ' One credit.';
-  el.cloudNote.textContent =
-    'For a phone, an old computer, or a tab you want to close: the files are uploaded, the work is done ' +
-    'there, and the result waits for you on this page. The files are deleted after the job.' + price;
-  el.startCloud.disabled = false;
+  el.start.textContent = 'Upload and convert on our server';
+  el.eta.textContent =
+    'The files are uploaded, the work is done on our server, and the result waits for you on this page, ' +
+    'so you can close this tab. The files are deleted after the job.' + price;
 }
 
-el.startCloud.addEventListener('click', () => {
+el.inBrowser.addEventListener('change', () => {
+  try { localStorage.setItem(MODE_KEY, el.inBrowser.checked ? 'browser' : 'server'); } catch { /* private window */ }
+  renderMode();
+});
+
+function startOnServer() {
   if (!draft || running) return;
   clearError();
   // Ask for the credit before the upload, not after an hour of it.
@@ -403,7 +426,7 @@ el.startCloud.addEventListener('click', () => {
     refreshAccount();
   };
   xhr.send(form);
-});
+}
 
 /* ---------------- the job, in this tab ---------------- */
 
@@ -412,6 +435,7 @@ let wakeLock = null;
 
 el.start.addEventListener('click', async () => {
   if (!draft || running) return;
+  if (!inBrowser()) { startOnServer(); return; }
   el.start.disabled = true;
   clearError();
   const language = el.language.value;

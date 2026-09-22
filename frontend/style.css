@@ -300,8 +300,10 @@ button.compact { padding: 6px 12px; font-size: 13px; }
 }
 .tag.free { background: var(--ok-soft); color: var(--ok); }
 
-.cloud { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
-.cloud p { margin: 0 0 10px; }
+.mode { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--ok); flex: none; }
+.switch input:disabled + span { color: var(--muted); }
 
 .share-form { display: grid; gap: 6px; margin: 14px 0 8px; }
 .share-form label { font-size: 13px; font-weight: 600; margin-top: 6px; }
