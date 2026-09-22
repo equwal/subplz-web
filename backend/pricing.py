@@ -33,9 +33,10 @@ There is no unlimited plan: use comes in bursts (a backlog, then nothing), and
 one heavy user of an unlimited plan costs more than the plan brings in.
 
   free              in the browser: no limit, each output
-  single book       $4.99
-  5-book pack       $16.99   ($3.40/book)
-  20-book pack      $39.00   ($1.95/book)
+  10-book pack      $4.99    ($0.50/book)
+
+The owner set $4.99 for ten books on 2026-09-22. The packs sold before that
+(one book $4.99, five $16.99, twenty $39) are in RETIRED_PLANS.
 
 Every number is overridable by env var; these are defaults, not decisions cast
 in code. An operator who wants a recurring plan can add one with
@@ -73,26 +74,20 @@ class Plan:
 
 DEFAULT_PLANS: list[Plan] = [
     Plan(
-        id="single",
-        name="One book",
-        credits=1,
+        id="pack10",
+        name="10 books",
+        credits=10,
         price_cents=499,
-        blurb="One book on our server, from any device.",
+        blurb="Ten books on our server, from any device. Credits never expire.",
     ),
-    Plan(
-        id="pack5",
-        name="5 books",
-        credits=5,
-        price_cents=1699,
-        blurb="Credits never expire.",
-    ),
-    Plan(
-        id="pack20",
-        name="20 books",
-        credits=20,
-        price_cents=3900,
-        blurb="For working through a series.",
-    ),
+]
+
+# Not for sale. A checkout that started before a plan was retired can still
+# finish, and it must credit what the buyer saw on the payment page.
+RETIRED_PLANS: list[Plan] = [
+    Plan(id="single", name="One book", credits=1, price_cents=499),
+    Plan(id="pack5", name="5 books", credits=5, price_cents=1699),
+    Plan(id="pack20", name="20 books", credits=20, price_cents=3900),
 ]
 
 
@@ -107,8 +102,10 @@ def plans() -> list[Plan]:
         raise RuntimeError(f"SUBPLZ_WEB_PLANS_JSON is not valid: {exc}") from exc
 
 
-def get(plan_id: str) -> Plan | None:
-    return next((p for p in plans() if p.id == plan_id), None)
+def get(plan_id: str, retired: bool = False) -> Plan | None:
+    """A plan for sale. With `retired`, also a plan that is no longer sold."""
+    pool = plans() + (RETIRED_PLANS if retired else [])
+    return next((p for p in pool if p.id == plan_id), None)
 
 
 def as_dicts() -> list[dict]:

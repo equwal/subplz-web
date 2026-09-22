@@ -327,9 +327,7 @@ use of its operator's machines, and nothing else.
 
 | Plan | Price | Per book |
 |---|---|---|
-| One book | $4.99 | $4.99 |
-| 5 books | $16.99 | $3.40 |
-| 20 books | $39.00 | $1.95 |
+| 10 books | $4.99 | $0.50 |
 
 A book costs about $0.64 to convert on a rented GPU. Above about $5 a technical
 buyer wraps a raw alignment API (ElevenLabs: $2.20 for a 10-hour book). Below

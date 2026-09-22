@@ -151,25 +151,33 @@ def test_checkout_sends_stripe_the_right_order(client, monkeypatch):
         return FakeStripeObject({"id": "cs_new", "url": "https://stripe.test/pay"})
 
     monkeypatch.setattr(stripe.checkout.Session, "create", create)
-    r = client.post("/api/billing/checkout", json={"plan_id": "pack5"})
+    r = client.post("/api/billing/checkout", json={"plan_id": "pack10"})
     assert r.status_code == 200 and r.json()["url"] == "https://stripe.test/pay"
 
     assert seen["mode"] == "payment"
     assert seen["client_reference_id"] == account_id(client)
-    assert seen["metadata"]["plan_id"] == "pack5"
+    assert seen["metadata"]["plan_id"] == "pack10"
     item = seen["line_items"][0]["price_data"]
-    assert item["unit_amount"] == 1699 and item["currency"] == "usd"
+    assert item["unit_amount"] == 499 and item["currency"] == "usd"
     assert "recurring" not in item
     assert seen["success_url"].startswith(
         "https://example.test/api/billing/return?session_id={CHECKOUT_SESSION_ID}")
     assert seen["customer_creation"] == "always"
 
 
-def test_no_unlimited_plan_is_sold_by_default(client):
+def test_ten_books_cost_4_99_and_no_unlimited_plan_is_sold(client):
     plans = client.get("/api/pricing").json()["plans"]
-    assert [p["id"] for p in plans] == ["single", "pack5", "pack20"]
-    assert [p["price_cents"] for p in plans] == [499, 1699, 3900]
+    assert [(p["id"], p["credits"], p["price_cents"]) for p in plans] == [("pack10", 10, 499)]
     assert not any(p["recurring"] for p in plans)
+
+
+def test_a_retired_plan_is_not_sold_but_a_late_payment_still_credits(client):
+    # A checkout that started before the price change can finish after it.
+    # It must credit what the buyer saw on the payment page.
+    assert client.post("/api/billing/checkout",
+                       json={"plan_id": "single"}).status_code == 404
+    buy(client, "single", email=f"late-{time.time_ns()}@example.com")
+    assert client.get("/api/account").json()["credits"] == 1
 
 
 def test_subscription_checkout_is_recurring(client, monkeypatch, monthly_plan):

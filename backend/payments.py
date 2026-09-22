@@ -187,7 +187,9 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
         checkout.get("client_reference_id") or meta.get("account_id"),
         checkout.get("customer"),
     )
-    plan = pricing.get(meta.get("plan_id") or "")
+    # A retired plan too: the buyer may have opened the payment page before
+    # the plan was retired.
+    plan = pricing.get(meta.get("plan_id") or "", retired=True)
     if account is None or plan is None:
         log.error("checkout %s: unknown account or plan %r", checkout.get("id"), meta)
         return None
