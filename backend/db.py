@@ -2,10 +2,11 @@
 
 import enum
 import secrets
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
+    Date,
     DateTime,
     Enum,
     Float,
@@ -81,6 +82,13 @@ class Account(Base):
     free_credits_used: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
+    # 1 once the owner of the email opened a sign-in link that we sent to it.
+    # An email that came only from a payment is not verified.
+    email_verified: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    # The last day (UTC) on which the account spent its daily free credit.
+    daily_credit_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # The unlimited plan. Status is Stripe's own word for it (active, past_due,
     # canceled...); period_end is when the paid-for time runs out.
@@ -161,6 +169,8 @@ class Job(Base):
     free_credit_spent: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
+    # Set if this job spent a daily free credit: the day of that credit.
+    daily_credit_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow

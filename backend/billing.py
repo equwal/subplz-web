@@ -22,12 +22,12 @@ Taking the money lives in payments.py; this file only decides who may do what.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import update
+from sqlalchemy import func, or_, update
 from sqlalchemy.orm import Session
 
-from .db import Account, Job, SessionLocal, utcnow
+from .db import Account, Job, JobStatus, SessionLocal, utcnow
 from .settings import settings
 
 FREE = "free"
@@ -71,31 +71,58 @@ def is_subscribed(account: Account) -> bool:
     return ends is None or ends + _GRACE > utcnow()
 
 
-def free_allowance(signed_in: bool) -> int:
-    """The free credits that an account gets in all.
+def _today() -> date:
+    """The day of the daily free credit (UTC). Tests replace this."""
+    return utcnow().date()
+
+
+def _books_converted(session: Session, account: Account) -> int:
+    """Books that the server converted for `account`.
+
+    Books converted in the browser do not count: the server cannot check
+    that a browser did the work.
+    """
+    return (
+        session.query(func.count(Job.id))
+        .filter(Job.account_id == account.id, Job.local == 0,
+                Job.status == JobStatus.succeeded)
+        .scalar()
+        or 0
+    )
+
+
+def free_allowance(session: Session, account: Account, verified: bool | None = None) -> int:
+    """The free credits (not the daily one) that `account` gets in all.
 
     Zero while this server takes no conversions: a free credit must not
-    promise a job that cannot run.
+    promise a job that cannot run. Give `verified=True` to get the number
+    after the email is verified.
     """
     if not settings.cloud_enabled:
         return 0
-    if signed_in:
-        return settings.free_credits_signed_in
-    return settings.free_credits_anonymous
+    if verified is None:
+        verified = bool(account.email_verified)
+    if not verified:
+        return settings.free_credits_anonymous
+    bonus = 0
+    if settings.books_per_bonus_credit > 0:
+        bonus = _books_converted(session, account) // settings.books_per_bonus_credit
+    return settings.free_credits_verified + bonus
 
 
-def free_credits_left(account: Account, signed_in: bool | None = None) -> int:
-    """The free credits that `account` can spend now.
-
-    Give `signed_in=True` to get the number after a sign-in.
-    """
-    if signed_in is None:
-        signed_in = account.signed_in
-    return max(0, free_allowance(signed_in) - account.free_credits_used)
+def free_credits_left(session: Session, account: Account, verified: bool | None = None) -> int:
+    return max(0, free_allowance(session, account, verified) - account.free_credits_used)
 
 
-def check(account: Account) -> Entitlement:
-    free = free_credits_left(account)
+def daily_credit_left(account: Account) -> int:
+    """1 while a verified account has not spent the free credit of today."""
+    if not (settings.cloud_enabled and settings.daily_free_credit and account.email_verified):
+        return 0
+    return 0 if account.daily_credit_on == _today() else 1
+
+
+def check(session: Session, account: Account) -> Entitlement:
+    free = free_credits_left(session, account) + daily_credit_left(account)
     return Entitlement(
         credits=account.purchased_credits + free,
         free_credits=free,
@@ -104,13 +131,30 @@ def check(account: Account) -> Entitlement:
     )
 
 
+def _spend_daily_credit(session: Session, account: Account) -> date | None:
+    """Take the free credit of today, atomically. Its day, or None."""
+    if not daily_credit_left(account):
+        return None
+    today = _today()
+    taken = session.execute(
+        update(Account)
+        .where(
+            Account.id == account.id,
+            or_(Account.daily_credit_on.is_(None), Account.daily_credit_on != today),
+        )
+        .values(daily_credit_on=today)
+    ).rowcount
+    session.refresh(account)
+    return today if taken else None
+
+
 def _spend_free_credit(session: Session, account: Account) -> bool:
     """Take one free credit, atomically. False if there was none to take."""
     taken = session.execute(
         update(Account)
         .where(
             Account.id == account.id,
-            Account.free_credits_used < free_allowance(account.signed_in),
+            Account.free_credits_used < free_allowance(session, account),
         )
         .values(free_credits_used=Account.free_credits_used + 1)
     ).rowcount
@@ -133,11 +177,17 @@ def authorize_start(session: Session, account: Account, job: Job) -> None:
     """Charge what starting `job` costs, or raise PaymentRequired.
 
     Where the job runs sets its tier: a browser job is free, a server job is
-    a cloud job. A cloud job spends a free credit first, then a bought one.
+    a cloud job. A cloud job spends the daily credit first (it does not
+    carry over), then a free credit, then a bought one.
     """
     job.tier = FREE if job.local else CLOUD
     job.billed, job.credit_spent, job.free_credit_spent = 0, 0, 0
+    job.daily_credit_on = None
     if job.local or not settings.billing_enabled or is_subscribed(account):
+        return
+    day = _spend_daily_credit(session, account)
+    if day is not None:
+        job.daily_credit_on = day
         return
     if _spend_free_credit(session, account):
         job.free_credit_spent = 1
@@ -167,6 +217,15 @@ def refund(session: Session, job: Job) -> None:
             .values(free_credits_used=Account.free_credits_used - 1)
         )
         job.free_credit_spent = 0
+    if job.daily_credit_on is not None:
+        # Only the credit of the same day comes back: a later day has its own.
+        session.execute(
+            update(Account)
+            .where(Account.id == job.account_id,
+                   Account.daily_credit_on == job.daily_credit_on)
+            .values(daily_credit_on=None)
+        )
+        job.daily_credit_on = None
     session.add(job)
 
 

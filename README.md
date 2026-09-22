@@ -344,13 +344,24 @@ A job in the browser costs the server nothing, so it is never counted and never
 refused. A server job takes its credit at the start. A job that fails or is
 cancelled gets the credit back.
 
-**Free credits.** While `SUBPLZ_WEB_CLOUD_ENABLED` is true, a visitor without
-an account gets one free credit (`SUBPLZ_WEB_FREE_CREDITS_ANONYMOUS`), and an
-account gets ten in all (`SUBPLZ_WEB_FREE_CREDITS_SIGNED_IN`). A free credit
-that a device used before sign-in counts toward the ten, and a second device
-adds no free credits. A server job spends the free credits first. The account
-counts the free credits apart from the bought ones (`free_credits_used`), so
-a refund of bought credits never pays out a free one.
+**Free credits.** They exist only while `SUBPLZ_WEB_CLOUD_ENABLED` is true.
+
+- A visitor without a verified email gets one free credit
+  (`SUBPLZ_WEB_FREE_CREDITS_ANONYMOUS`). A buyer whose email came only from
+  Stripe is in this group.
+- An account whose email is verified gets two in all
+  (`SUBPLZ_WEB_FREE_CREDITS_VERIFIED`). The email is verified when its owner
+  opens a sign-in link that the server sent to it. A free credit that a device
+  used before counts toward the two, and a second device adds no free credits.
+- A verified account also gets one free credit each day
+  (`SUBPLZ_WEB_DAILY_FREE_CREDIT`). It does not carry over to the next day.
+- A verified account gets one more free credit for every two books that the
+  server converted for it (`SUBPLZ_WEB_BOOKS_PER_BONUS_CREDIT`). Books
+  converted in the browser do not count, because the server cannot check them.
+
+A server job spends the daily credit first, then a free credit, then a bought
+one. The account counts the free credits apart from the bought ones
+(`free_credits_used`), so a refund of bought credits never pays out a free one.
 
 A switch above the drop zone says where the work is done. Each visit starts
 with it on ("Convert in this browser (JavaScript)"), before a file is chosen.

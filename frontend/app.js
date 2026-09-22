@@ -126,10 +126,12 @@ function renderAccount() {
   el.who.hidden = !signedIn;
   el.who.textContent = signedIn ? a.email : '';
   el.signoutBtn.hidden = !signedIn;
-  el.signinBtn.hidden = signedIn || !a.email_sign_in_available;
+  // A buyer has an email from Stripe that is not verified yet. The same
+  // sign-in link verifies it.
+  el.signinBtn.hidden = !a.email_sign_in_available || (signedIn && a.email_verified);
   const offer = signInOffer();
-  el.signinBtn.textContent = offer
-    ? `Sign in for ${offer} free credit${offer === 1 ? '' : 's'}` : 'Sign in';
+  const verb = signedIn ? 'Verify your email' : 'Sign in';
+  el.signinBtn.textContent = offer ? `${verb} for ${offer}` : verb;
 
   // What is sold is conversion on this server's hardware. Nothing is for sale
   // until that is connected; in this tab each output is free.
@@ -146,12 +148,17 @@ function renderAccount() {
   renderMode();
 }
 
-/* The free credits that a sign-in gives this visitor. Zero when there is
-   nothing to offer: signed in already, no sign-in email, or billing off. */
+/* What a verified email gives this visitor, in words: "2 free credits + 1 a
+   day". Empty when there is nothing to offer: the email is verified, the
+   server sends no sign-in email, or billing is off. */
 function signInOffer() {
   const a = account;
-  if (!a || signedIn || !a.email_sign_in_available || !a.billing_enabled) return 0;
-  return a.free_credits_with_account || 0;
+  if (!a || a.email_verified || !a.email_sign_in_available || !a.billing_enabled) return '';
+  const n = a.free_credits_with_account || 0;
+  const parts = [];
+  if (n) parts.push(`${n} free credit${n === 1 ? '' : 's'}`);
+  if (a.daily_free_credit) parts.push(n ? '1 a day' : '1 free credit a day');
+  return parts.join(' + ');
 }
 
 let toastTimer = null;
@@ -888,8 +895,9 @@ async function openPricing(why) {
     'In this tab a conversion is free, without limit. A credit converts a book on our server: from any device, and you can close the tab.';
   const offer = signInOffer();
   el.pricingSignin.hidden = !offer;
-  el.pricingSigninBtn.textContent =
-    `Or sign in with your email and get ${offer} free credit${offer === 1 ? '' : 's'}.`;
+  el.pricingSigninBtn.textContent = signedIn
+    ? `Or verify your email and get ${offer}.`
+    : `Or sign in with your email and get ${offer}.`;
   el.plans.innerHTML = '<p class="muted">Loading…</p>';
   if (!el.pricingDialog.open) el.pricingDialog.showModal();
 
@@ -957,6 +965,8 @@ el.portalBtn.addEventListener('click', async () => {
 
 function openSignIn() {
   el.signinNote.hidden = true;
+  // A buyer verifies the address that Stripe has.
+  if (account?.email && !el.signinEmail.value) el.signinEmail.value = account.email;
   el.signinDialog.showModal();
   el.signinEmail.focus();
 }
