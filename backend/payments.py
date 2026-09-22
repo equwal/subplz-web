@@ -67,6 +67,57 @@ def _base() -> str:
 # checkout
 # ---------------------------------------------------------------------------
 
+def _catalogue_price(stripe, plan: pricing.Plan) -> str | None:
+    """The id of the Stripe price of a monthly plan (lookup key = plan id).
+
+    The customer portal switches a subscription only between prices of the
+    Stripe catalogue, so a plan checks out with its catalogue price when one
+    exists. A price that does not match the plan is not used.
+    tools/stripe_plans.py makes the prices.
+    """
+    try:
+        found = _plain(stripe.Price.list(lookup_keys=[plan.id], active=True, limit=1))
+    except stripe.StripeError as exc:
+        log.warning("could not read the Stripe price of %s: %s", plan.id, exc)
+        return None
+    for price in found.get("data") or []:
+        if (price.get("unit_amount") == plan.price_cents
+                and price.get("currency") == plan.currency
+                and (price.get("recurring") or {}).get("interval") == "month"):
+            return price["id"]
+        log.warning("Stripe price %s does not match plan %s", price.get("id"), plan.id)
+    return None
+
+
+def ensure_plan_prices() -> list[tuple[str, str, bool]]:
+    """Make a Stripe price for each monthly plan that has none.
+
+    Safe to run again: a plan with a matching price keeps it. Returns
+    (plan id, price id, made now) for each monthly plan. tools/stripe_plans.py
+    runs this.
+    """
+    stripe = _stripe()
+    out = []
+    for plan in pricing.plans():
+        if not plan.recurring:
+            continue
+        price_id = _catalogue_price(stripe, plan)
+        made = price_id is None
+        if made:
+            price = _plain(stripe.Price.create(
+                unit_amount=plan.price_cents,
+                currency=plan.currency,
+                recurring={"interval": "month"},
+                lookup_key=plan.id,
+                # A price that does not match keeps its product; move the key.
+                transfer_lookup_key=True,
+                product_data={"name": f"{settings.site_name} - {plan.name}"},
+            ))
+            price_id = price["id"]
+        out.append((plan.id, price_id, made))
+    return out
+
+
 def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> str:
     """Return the Stripe-hosted payment page for `plan`."""
     stripe = _stripe()
@@ -84,10 +135,16 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
     if plan.recurring:
         price["recurring"] = {"interval": "month"}
 
+    line: dict = {"quantity": 1, "price_data": price}
+    if plan.recurring:
+        price_id = _catalogue_price(stripe, plan)
+        if price_id:
+            line = {"quantity": 1, "price": price_id}
+
     meta = {"account_id": account.id, "plan_id": plan.id}
     params: dict = {
         "mode": "subscription" if plan.recurring else "payment",
-        "line_items": [{"quantity": 1, "price_data": price}],
+        "line_items": [line],
         "client_reference_id": account.id,
         "metadata": meta,
         # Stripe substitutes the real id; the return handler re-reads the
@@ -159,8 +216,30 @@ def _account_for(session: Session, account_id: str | None, customer: str | None)
     return accounts.resolve(session, account) if account else None
 
 
+def _our_plan_id(sub: dict) -> str | None:
+    """The monthly plan of a subscription, or None if it is not one of ours.
+
+    The lookup key of the price names the plan, and it changes when the
+    customer switches plans in the portal. A subscription that started with
+    an inline price has no lookup key: its checkout metadata names the plan.
+    The Stripe account also sells other products, and their events come here
+    too. A subscription that names no monthly plan of this site is not ours.
+    """
+    items = (sub.get("items") or {}).get("data") or []
+    price = (items[0].get("price") or {}) if items else {}
+    for plan_id in (price.get("lookup_key"), (sub.get("metadata") or {}).get("plan_id")):
+        plan = pricing.get(plan_id or "", retired=True)
+        if plan is not None and plan.recurring:
+            return plan.id
+    return None
+
+
 def apply_subscription(session: Session, sub: dict) -> None:
     """Mirror a Stripe subscription onto its account."""
+    plan_id = _our_plan_id(sub)
+    if plan_id is None:
+        log.info("subscription %s is not for a plan of this site; ignored", sub.get("id"))
+        return
     meta = sub.get("metadata") or {}
     account = _account_for(session, meta.get("account_id"), sub.get("customer"))
     if account is None:
@@ -179,8 +258,9 @@ def apply_subscription(session: Session, sub: dict) -> None:
     account.subscription_id = sub.get("id")
     account.subscription_status = sub.get("status")
     account.subscription_period_end = period_end
-    if meta.get("plan_id"):
-        account.subscription_plan_id = meta["plan_id"]
+    # A switch in the portal changes the plan and keeps the month: the books
+    # used this month still count against the new plan.
+    account.subscription_plan_id = plan_id
     if sub.get("customer") and not account.stripe_customer_id:
         account.stripe_customer_id = sub["customer"]
     session.commit()
