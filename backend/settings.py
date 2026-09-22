@@ -54,10 +54,6 @@ class Settings(BaseSettings):
     # Presigned-URL lifetime for s3 downloads.
     download_url_ttl_seconds: int = 3600
 
-    # How long the server keeps a visitor's files. See retention.py.
-    input_retention_hours: int = 24
-    artifact_retention_days: int = 7
-
     # SQLite locally; set to a postgresql+psycopg:// URL in production.
     database_url: str = ""
 

@@ -31,13 +31,11 @@
   <h2>Your files</h2>
   <ul>
     <li>Use only files that you have the right to use. You keep all rights in them. We claim none.</li>
-    <li>Files uploaded for a server conversion are deleted when the job succeeds. If a job fails,
-      is cancelled, or is never started, they are kept for <span class="input-hours">24</span> hours
-      so that you can try again, and then deleted.</li>
-    <li>Results (subtitles, videos) are kept for <span class="result-days">7</span> days and then
-      deleted. Download what you want to keep.</li>
-    <li>Nobody looks at your files, they are not shared, and they are not used to train anything.
-      There is no public library of uploads.</li>
+    <li>The server keeps the files that you upload for a server conversion (the audio and the
+      book), and the results of each conversion (subtitles, videos). Nothing deletes them
+      automatically: we delete them by hand. Write to us to have your files deleted.</li>
+    <li>We look at your files only to find and fix faults in a conversion. They are not shared,
+      and they are not used to train anything. There is no public library of uploads.</li>
   </ul>
 
   <h2>Payments and refunds</h2>
@@ -66,7 +64,7 @@
   </ul>
 
   <h2>Copyright complaints</h2>
-  <p>We do not publish or share what users upload, and uploads are deleted as said above. If you
+  <p>We do not publish or share what users upload. If you
     believe that material on this service infringes your copyright, write to the contact address
     with: the work, where it is on this service, your contact details, a statement that you act in
     good faith for the owner of the right, and your signature. We remove what the notice properly
@@ -83,7 +81,6 @@
 </main>
 <script type="module">
   const site = await (await fetch('/api/pricing')).json();
-  const put = (cls, value) => document.querySelectorAll('.' + cls).forEach((el) => { el.textContent = value; });
   if (site.contact_email) {
     document.querySelectorAll('.contact').forEach((el) => {
       const a = document.createElement('a');
@@ -92,8 +89,6 @@
       el.replaceChildren(a);
     });
   }
-  put('input-hours', site.input_retention_hours);
-  put('result-days', site.artifact_retention_days);
 </script>
 </body>
 </html>

@@ -386,7 +386,8 @@ function renderMode() {
   el.start.textContent = 'Upload and convert on our server';
   el.eta.textContent =
     'The files are uploaded, the work is done on our server, and the result waits for you on this page, ' +
-    'so you can close this tab. The files are deleted after the job.' + serverPrice();
+    'so you can close this tab. We keep the files on our server to find faults, and delete them on request.' +
+    serverPrice();
 }
 
 el.inBrowser.addEventListener('change', renderMode);

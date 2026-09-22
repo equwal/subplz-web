@@ -97,19 +97,23 @@ async def lifespan(_: FastAPI):
     queue.shutdown()
 
 
-async def _housekeeping() -> None:
-    """Once an hour: let go of abandoned browser jobs, and delete files past their time."""
-    from . import retention
+def housekeeping() -> None:
+    """One pass of the hourly housekeeping: let go of abandoned browser jobs.
+
+    It deletes no file. The server keeps each upload and each result for
+    debugging, and the operator deletes them by hand.
+    """
     from .api import expire_stale_local_jobs
 
-    while True:
-        def once() -> None:
-            with SessionLocal() as s:
-                expire_stale_local_jobs(s)
-                retention.sweep(s)
+    with SessionLocal() as s:
+        expire_stale_local_jobs(s)
 
+
+async def _housekeeping() -> None:
+    """Run `housekeeping` once an hour."""
+    while True:
         try:
-            await asyncio.to_thread(once)       # deleting a book's files is slow; do not hold the site up
+            await asyncio.to_thread(housekeeping)
         except Exception:  # noqa: BLE001 - housekeeping must not take the site down
             log.exception("housekeeping failed")
         await asyncio.sleep(3600)

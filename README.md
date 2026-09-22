@@ -263,8 +263,10 @@ m4a/m4b, which are the types an EPUB 3 reader must play. `tests/engine/epub.test
 follows each overlay as a reader does, and gives the result to the W3C
 `epubcheck` when `EPUBCHECK` points to its jar.
 
-Uploaded media is deleted once a job succeeds. A **failed** job keeps its inputs
-so you can fix the language and retry without re-uploading.
+The server keeps the files of each job together in `data/work/<job id>/`: the
+audio and the book in `input/`, the subtitles in `out/`, and the run log. Nothing
+deletes them: the operator deletes them by hand. A **failed** job can thus be
+retried without a new upload.
 
 ---
 
@@ -354,11 +356,9 @@ Off: the files are uploaded, the job runs on the server, and the result waits
 in the list of conversions, so the visitor can close the tab. The page asks
 for the credit before the upload, not after it.
 
-The server does not keep a visitor's files past their use
-(`backend/retention.py`, once an hour): uploads go when the job succeeds, or
-after 24 hours when it did not; results go after 7 days. `/terms.html` says the
-same to the visitor, with the numbers read from the server, and shows
-`SUBPLZ_WEB_CONTACT_EMAIL`.
+The server keeps each upload and each result, for debugging. Nothing deletes
+them automatically: the operator deletes them by hand, and on request.
+`/terms.html` says so to the visitor, and shows `SUBPLZ_WEB_CONTACT_EMAIL`.
 
 `SUBPLZ_WEB_CLOUD_ENABLED` says that fast conversion is on offer. While it is
 false the page shows no way to buy credits, whatever `SUBPLZ_WEB_BILLING_ENABLED`
@@ -440,7 +440,8 @@ shared filesystem.
 
 - Set the Stripe keys, the webhook and SMTP (see *Turning payments on*).
 - Put a reverse proxy in front for TLS and upload limits.
-- Add a retention job — audiobooks are large and artifacts are kept forever.
+- Watch the disk. The server keeps each upload and result until the operator
+  deletes it.
 - Run workers on hardware that can take it. Alignment needs roughly 2–3 GB of
   RAM; a 1 GB VPS will OOM. A 4h40m Russian audiobook took ~45 minutes on
   `tiny`/CPU with 15 threads here, and would take many hours on one vCPU.

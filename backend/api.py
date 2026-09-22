@@ -13,7 +13,6 @@ checkout, its return trip and its webhook).
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -324,8 +323,6 @@ def get_pricing():
         "payments_available": settings.payments_configured,
         "tiers": pricing.TIER_OUTPUTS,
         "contact_email": settings.contact_email,
-        "input_retention_hours": settings.input_retention_hours,
-        "artifact_retention_days": settings.artifact_retention_days,
         "plans": pricing.as_dicts(),
     }
 
@@ -573,14 +570,13 @@ async def create_upload(
         session.add(job)
         session.commit()
 
+    # A refused upload keeps what arrived, for debugging. The operator deletes
+    # it by hand.
     except HTTPException:
-        shutil.rmtree(paths.root, ignore_errors=True)
         raise
     except detect.DetectionError as exc:
-        shutil.rmtree(paths.root, ignore_errors=True)
         raise HTTPException(400, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
-        shutil.rmtree(paths.root, ignore_errors=True)
         raise HTTPException(500, f"Upload failed: {exc}") from exc
 
     return UploadOut(
@@ -857,11 +853,11 @@ def delete_job(
     account: Annotated[Account, Depends(get_account)],
     session: Annotated[Session, Depends(get_session)],
 ):
+    """Take the job off the visitor's list. Its files stay on the server for
+    debugging, and the operator deletes them by hand."""
     job = _load(session, account, job_id)
     if job.status in (JobStatus.queued, JobStatus.running):
         raise HTTPException(409, "Cancel the job before deleting it.")
-    storage.delete_prefix(job.id)
-    shutil.rmtree(Paths.for_job(job.id).root, ignore_errors=True)
     session.delete(job)
     session.commit()
     return {"deleted": job_id}
