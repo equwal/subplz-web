@@ -899,7 +899,7 @@ async function openPricing(why) {
   el.plans.innerHTML = '';
   for (const p of catalogue.plans) {
     const card = document.createElement('div');
-    card.className = 'plan' + (p.id === 'pack5' ? ' featured' : '');
+    card.className = 'plan' + (p.id === 'pack10' ? ' featured' : '');
     const per = p.per_book_cents && p.credits > 1
       ? `<span class="plan-per">$${(p.per_book_cents / 100).toFixed(2)} a book</span>` : '';
     card.innerHTML = `
