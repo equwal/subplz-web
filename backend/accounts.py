@@ -66,6 +66,10 @@ def merge(session: Session, src: Account, dst: Account) -> None:
     )
     dst.purchased_credits += src.purchased_credits
     src.purchased_credits = 0
+    # Add the free credits used, not the free credits left: a second device
+    # must not bring a second set of free credits into one account.
+    dst.free_credits_used += src.free_credits_used
+    src.free_credits_used = 0
     if src.stripe_customer_id and not dst.stripe_customer_id:
         dst.stripe_customer_id = src.stripe_customer_id
     if src.subscription_id and not dst.subscription_id:

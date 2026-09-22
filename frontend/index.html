@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://subread.space/">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#4f46e5">
-<link rel="stylesheet" href="/style.css?v=12">
+<link rel="stylesheet" href="/style.css?v=13">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 </head>
 <body>
@@ -54,6 +54,16 @@
         its captions. <span class="tag free">free</span></li>
     </ul>
     <p class="muted small" id="freetier">Free in your browser, without limit.</p>
+  </section>
+
+  <!-- where the work is done: in this tab unless the visitor turns it off -->
+  <section id="mode" class="mode">
+    <label class="switch">
+      <input type="checkbox" id="in-browser" checked autocomplete="off">
+      <span><strong>Convert in this browser (JavaScript)</strong>
+        <span class="tag free">free</span></span>
+    </label>
+    <p class="muted small" id="mode-note">Free, without limit, and your files are not uploaded.</p>
   </section>
 
   <!-- step 1: drop -->
@@ -142,13 +152,6 @@
       <ul id="match-warnings" class="match-warnings"></ul>
     </div>
 
-    <div class="mode">
-      <label class="switch">
-        <input type="checkbox" id="in-browser" checked>
-        <span>Convert in this browser (JavaScript). Off: our server does it.</span>
-      </label>
-    </div>
-
     <div class="actions">
       <button id="start" class="primary">Start alignment</button>
       <button id="discard" class="ghost">Discard</button>
@@ -232,6 +235,7 @@
   <form method="dialog"><button class="modal-x" aria-label="Close">×</button></form>
   <h2>Credits for our server</h2>
   <p id="pricing-why" class="muted"></p>
+  <p id="pricing-signin" hidden><button type="button" id="pricing-signin-btn" class="linkbtn"></button></p>
   <div id="plans" class="plans"></div>
   <p class="muted small" id="pricing-foot">
     Paid through Stripe; we never see your card. One credit converts one book
@@ -243,6 +247,6 @@
 
 <div id="toast" class="toast" hidden role="status"></div>
 
-<script type="module" src="/app.js?v=12"></script>
+<script type="module" src="/app.js?v=13"></script>
 </body>
 </html>

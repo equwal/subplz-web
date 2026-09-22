@@ -174,7 +174,12 @@ class AccountOut(BaseModel):
     free_tier_summary: str
     # The cloud tier: conversions on this server's hardware.
     cloud_available: bool
+    # Bought and free credits together.
     credits: int
+    # The part of `credits` that is free.
+    free_credits: int
+    # The free credits this visitor has after a sign-in. Zero when signed in.
+    free_credits_with_account: int
     subscribed: bool
     subscription_ends: str | None
     cloud_allowed: bool
@@ -295,6 +300,11 @@ def _account_out(session: Session, account: Account) -> AccountOut:
         email_sign_in_available=settings.sign_in_available,
         free_tier_summary=pricing.free_tier_summary(),
         credits=ent.credits,
+        free_credits=ent.free_credits,
+        free_credits_with_account=(
+            0 if account.signed_in
+            else billing.free_credits_left(account, signed_in=True)
+        ),
         subscribed=ent.subscribed,
         subscription_ends=(
             ent.subscription_ends.isoformat() if ent.subscription_ends else None

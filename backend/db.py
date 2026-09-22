@@ -75,6 +75,12 @@ class Account(Base):
     )
     # Paid conversions in hand. One credit = one book with every output.
     purchased_credits: Mapped[int] = mapped_column(Integer, default=0)
+    # Free credits spent so far. The free credits left are the allowance
+    # (billing.free_allowance) minus this count. Thus a sign-in raises the
+    # allowance, and a merge adds the two counts together.
+    free_credits_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
 
     # The unlimited plan. Status is Stripe's own word for it (active, past_due,
     # canceled...); period_end is when the paid-for time runs out.
@@ -146,8 +152,13 @@ class Job(Base):
     # 1 when the work happens in the visitor's browser and the server only
     # keeps the books: nothing to queue, nothing to resume after a restart.
     local: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
-    # 1 if a credit was spent on this job, so a failed run can hand it back.
+    # 1 if a bought credit was spent on this job, so a failed run can hand it back.
     credit_spent: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    # 1 if a free credit was spent on this job. A failed run gives it back to
+    # the free credits, not to the bought ones.
+    free_credit_spent: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0")
     )
 

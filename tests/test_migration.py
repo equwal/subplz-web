@@ -49,7 +49,8 @@ init_db(); init_db()  # twice: a restart must be a no-op
 with SessionLocal() as s:
     job = s.get(Job, "job_old")
     acct = s.get(Account, "acct_old")
-    print(job.tier, job.credit_spent, job.status.value, acct.merged_into, acct.signed_in)
+    print(job.tier, job.credit_spent, job.status.value, acct.merged_into, acct.signed_in,
+          job.free_credit_spent, acct.free_credits_used)
 """
 
 
@@ -66,13 +67,13 @@ def test_old_database_is_upgraded_in_place(tmp_path):
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     # Old rows read back with the new columns defaulted, nothing lost.
-    assert out.stdout.split() == ["free", "0", "succeeded", "None", "False"]
+    assert out.stdout.split() == ["free", "0", "succeeded", "None", "False", "0", "0"]
 
     con = sqlite3.connect(db)
     cols = lambda t: {r[1] for r in con.execute(f"PRAGMA table_info({t})")}  # noqa: E731
-    assert {"tier", "credit_spent"} <= cols("jobs")
+    assert {"tier", "credit_spent", "free_credit_spent"} <= cols("jobs")
     assert {"merged_into", "subscription_id", "subscription_status",
-            "subscription_period_end"} <= cols("accounts")
+            "subscription_period_end", "free_credits_used"} <= cols("accounts")
     tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"login_tokens", "purchases"} <= tables
     # The unique email index has to exist, or two accounts could share one.
