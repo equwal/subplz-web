@@ -380,7 +380,6 @@ def run_job(job_id: str) -> None:
         returncode = _stream_aligner(job_id, request, log_path)
 
         if _is_canceled(job_id):
-            _cleanup_inputs(paths)
             return
 
         if returncode != 0:
@@ -392,15 +391,13 @@ def run_job(job_id: str) -> None:
         _set(job_id, stage="Collecting output", progress=0.92)
         _collect_artifacts(job_id, paths, log_path, duration, request, audio_in)
 
+        # The audio, the book and the subtitles stay in the folder of the job
+        # for debugging. The operator deletes them by hand.
         _set(job_id, status=JobStatus.succeeded, stage="Done", progress=1.0,
              finished_at=utcnow())
-        # Only on success: a failed job keeps its inputs so it can be retried
-        # without re-uploading hundreds of megabytes.
-        _cleanup_inputs(paths)
 
     except Exception as exc:  # noqa: BLE001 - surfaced to the user on the Job row
         if _is_canceled(job_id):
-            _cleanup_inputs(paths)
             return
         # Keep the log even on failure: it is the only way to debug an alignment.
         try:
@@ -671,15 +668,3 @@ def _summarize_srt(path: Path) -> tuple[int, float | None, float | None]:
     if not stamps:
         return count, None, None
     return count, to_seconds(stamps[0]), to_seconds(stamps[-1])
-
-
-def _cleanup_inputs(paths: Paths) -> None:
-    """Drop the uploaded media once the run is over; keep artifacts and the log."""
-    shutil.rmtree(paths.inp, ignore_errors=True)
-    shutil.rmtree(paths.out, ignore_errors=True)
-    shutil.rmtree(paths.root / "video", ignore_errors=True)
-    # Also drop the shared-storage copy made for external workers.
-    try:
-        storage.delete_prefix(f"{paths.root.name}/input")
-    except Exception:
-        pass
