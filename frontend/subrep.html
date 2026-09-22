@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subrep Pro — SubRead</title>
+<link rel="stylesheet" href="/style.css?v=13">
+<style>
+  main.pro { max-width: 720px; padding-top: 24px; padding-bottom: 60px; }
+  main.pro h1 { font-size: 26px; margin: 12px 0 6px; }
+  main.pro li { margin: 6px 0; }
+  main.pro a { color: var(--accent); }
+  .command { display: flex; gap: 8px; align-items: stretch; margin: 10px 0; }
+  .command code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap;
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px;
+    background: var(--bg); font-size: 13px; }
+  .waitlist { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .waitlist input { flex: 1; min-width: 200px; font: inherit; padding: 9px 12px;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); }
+  .note { margin-top: 12px; padding: 10px 14px; border-radius: 9px;
+    background: var(--accent-soft); }
+  .note:empty { display: none; }
+</style>
+</head>
+<body>
+<main class="pro">
+  <p><a href="https://honjimaku.com/subrep/">← Subrep</a> · <a href="/">SubRead</a></p>
+  <h1>Subrep Pro</h1>
+  <p class="muted">Subrep makes live captions of the sound on your computer, on your computer.
+    Live captions are free. Pro adds:</p>
+  <ul>
+    <li><strong>Replay clips:</strong> get back the sentence that you just heard, as a clip with
+      subtitles that you can mine with Yomitan.</li>
+    <li><strong>Anki cards</strong> from a clip.</li>
+    <li><strong>The large and medium speech models</strong>, for better text.</li>
+  </ul>
+  <p class="note" id="note" role="status"></p>
+
+  <section class="panel" id="buy">
+    <h2>Choose a plan</h2>
+    <div class="plans" id="plans"></div>
+    <p class="muted small" id="sign-in-note" hidden>Sign in with your email on
+      <a href="/">the SubRead page</a> first, then come back here.</p>
+    <p class="muted small">Stripe takes the payment. Cancel at any time with "Manage plan": the plan
+      then runs to the end of the period that you paid for. We refund a first payment on request
+      within 14 days. <a href="/terms.html">Terms</a></p>
+  </section>
+
+  <section class="panel" id="pro" hidden>
+    <h2>Your Subrep Pro</h2>
+    <p id="pro-status"></p>
+    <p>Run this command once on each computer that has Subrep. It links the computer to this
+      account, and the computer then renews its licence by itself:</p>
+    <div class="command">
+      <code id="command"></code>
+      <button class="ghost compact" id="copy" type="button">Copy</button>
+    </div>
+    <p class="muted small">Keep the command private: it gives Pro to any computer that runs it.</p>
+    <div class="actions">
+      <button class="ghost" id="manage" type="button">Manage plan</button>
+    </div>
+  </section>
+
+  <section class="panel" id="ios">
+    <h2>Subrep for iPhone</h2>
+    <p>There is no iPhone app yet. Leave your email, and we write to you once, when it ships.</p>
+    <form class="waitlist" id="waitlist">
+      <input id="waitlist-email" type="email" required autocomplete="email"
+        aria-label="Email" placeholder="you@example.com">
+      <button class="primary" type="submit">Tell me</button>
+    </form>
+    <p class="muted small">On an iPhone today, open the share link of a caption stream in Safari.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Free editions</h2>
+    <ul>
+      <li><a href="https://honjimaku.com/subrep/">Subrep for Windows</a></li>
+      <li><a href="https://github.com/equwal/subrep-android/releases/latest">Subrep for Android</a></li>
+    </ul>
+  </section>
+</main>
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const say = (text) => { $('note').textContent = text; };
+
+  async function post(path, body) {
+    const res = await fetch(path, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || data.error || `Error ${res.status}`);
+    return data;
+  }
+
+  function planCard(plan, state, first) {
+    const card = document.createElement('div');
+    card.className = 'plan' + (first ? ' featured' : '');
+    const name = document.createElement('div');
+    name.className = 'plan-name';
+    name.textContent = plan.name;
+    const price = document.createElement('div');
+    price.className = 'plan-price';
+    price.textContent = plan.price_display + ' ';
+    const per = document.createElement('small');
+    per.textContent = plan.interval === 'year' ? 'billed yearly' : 'billed monthly';
+    price.append(per);
+    const blurb = document.createElement('p');
+    blurb.className = 'plan-blurb';
+    blurb.textContent = plan.blurb;
+    const buy = document.createElement('button');
+    buy.className = first ? 'primary' : 'ghost';
+    buy.type = 'button';
+    buy.textContent = `Pay ${plan.price_display}`;
+    buy.disabled = !state.available || state.needs_sign_in;
+    buy.addEventListener('click', async () => {
+      buy.disabled = true;
+      try {
+        location.href = (await post('/api/subrep/checkout', { plan_id: plan.id })).url;
+      } catch (err) {
+        say(err.message);
+        buy.disabled = false;
+      }
+    });
+    card.append(name, price, blurb, buy);
+    return card;
+  }
+
+  async function render() {
+    const state = await (await fetch('/api/subrep', { credentials: 'same-origin' })).json();
+    $('plans').replaceChildren(...state.plans.map((p, i) => planCard(p, state, i === 0)));
+    $('sign-in-note').hidden = !state.needs_sign_in;
+    $('buy').hidden = state.pro;
+    $('pro').hidden = !state.pro;
+    if (!state.available) say('Subrep Pro is not for sale yet. Check again soon.');
+    if (state.pro) {
+      const ends = new Date(state.period_end).toLocaleDateString();
+      const plan = state.plans.find((p) => p.id === state.plan_id);
+      $('pro-status').textContent = `${plan ? plan.name : 'Subrep Pro'}: paid until ${ends}.`;
+      $('command').textContent = state.link.command;
+    }
+    return state;
+  }
+
+  $('copy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText($('command').textContent);
+    $('copy').textContent = 'Copied';
+  });
+
+  $('manage').addEventListener('click', async () => {
+    try {
+      location.href = (await post('/api/billing/portal')).url;
+    } catch (err) {
+      say(err.message);
+    }
+  });
+
+  $('waitlist').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await post('/api/subrep/waitlist', { email: $('waitlist-email').value, kind: 'ios' });
+      $('waitlist').replaceChildren('Thank you. We write to you when the iPhone app ships.');
+    } catch (err) {
+      say(err.message);
+    }
+  });
+
+  const checkout = new URLSearchParams(location.search).get('checkout');
+  const state = await render();
+  if (checkout === 'cancelled') say('The payment was cancelled. No money was taken.');
+  if (checkout === 'paid' || checkout === 'pending') {
+    // The webhook can land a few seconds after the browser comes back.
+    say(state.pro ? 'Thank you. Subrep Pro is on.' : 'The payment is in progress…');
+    for (let i = 0; i < 10 && !(await render()).pro; i++) {
+      await new Promise((done) => setTimeout(done, 3000));
+    }
+    if ((await render()).pro) say('Thank you. Subrep Pro is on.');
+  }
+  history.replaceState(null, '', location.pathname + location.hash);
+</script>
+</body>
+</html>

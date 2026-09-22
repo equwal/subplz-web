@@ -74,6 +74,8 @@ class Plan:
     price_cents: int
     currency: str = "usd"
     recurring: bool = False
+    # How often a recurring plan renews: "month" or "year".
+    interval: str = "month"
     blurb: str = ""
 
     @property

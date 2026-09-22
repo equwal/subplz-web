@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -68,7 +69,7 @@ def _base() -> str:
 # ---------------------------------------------------------------------------
 
 def _catalogue_price(stripe, plan: pricing.Plan) -> str | None:
-    """The id of the Stripe price of a monthly plan (lookup key = plan id).
+    """The id of the Stripe price of a recurring plan (lookup key = plan id).
 
     The customer portal switches a subscription only between prices of the
     Stripe catalogue, so a plan checks out with its catalogue price when one
@@ -83,7 +84,7 @@ def _catalogue_price(stripe, plan: pricing.Plan) -> str | None:
     for price in found.get("data") or []:
         if (price.get("unit_amount") == plan.price_cents
                 and price.get("currency") == plan.currency
-                and (price.get("recurring") or {}).get("interval") == "month"):
+                and (price.get("recurring") or {}).get("interval") == plan.interval):
             return price["id"]
         log.warning("Stripe price %s does not match plan %s", price.get("id"), plan.id)
     return None
@@ -107,7 +108,7 @@ def ensure_plan_prices() -> list[tuple[str, str, bool]]:
             price = _plain(stripe.Price.create(
                 unit_amount=plan.price_cents,
                 currency=plan.currency,
-                recurring={"interval": "month"},
+                recurring={"interval": plan.interval},
                 lookup_key=plan.id,
                 # A price that does not match keeps its product; move the key.
                 transfer_lookup_key=True,
@@ -118,11 +119,18 @@ def ensure_plan_prices() -> list[tuple[str, str, bool]]:
     return out
 
 
-def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> str:
-    """Return the Stripe-hosted payment page for `plan`."""
+def start_checkout(session: Session, account: Account, plan: pricing.Plan,
+                   page: str = "/") -> str:
+    """Return the Stripe-hosted payment page for `plan`.
+
+    `page` is the page of this site that the browser comes back to. It must be
+    one of api.RETURN_PAGES.
+    """
     stripe = _stripe()
 
-    if plan.recurring and billing.is_subscribed(account):
+    # One book plan at a time. A Subrep plan (subrep.py) is not a book plan.
+    if plan.recurring and pricing.get(plan.id, retired=True) is not None \
+            and billing.is_subscribed(account):
         raise PaymentError(
             "You already have a monthly plan. Change or cancel it with Manage plan."
         )
@@ -133,7 +141,7 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
         "product_data": {"name": f"{settings.site_name} - {plan.name}"},
     }
     if plan.recurring:
-        price["recurring"] = {"interval": "month"}
+        price["recurring"] = {"interval": plan.interval}
 
     line: dict = {"quantity": 1, "price_data": price}
     if plan.recurring:
@@ -142,6 +150,7 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
             line = {"quantity": 1, "price": price_id}
 
     meta = {"account_id": account.id, "plan_id": plan.id}
+    back = "" if page == "/" else f"&page={quote(page, safe='')}"
     params: dict = {
         "mode": "subscription" if plan.recurring else "payment",
         "line_items": [line],
@@ -150,8 +159,8 @@ def start_checkout(session: Session, account: Account, plan: pricing.Plan) -> st
         # Stripe substitutes the real id; the return handler re-reads the
         # session from it rather than trusting anything in the URL.
         "success_url": f"{_base()}/api/billing/return"
-                       "?session_id={CHECKOUT_SESSION_ID}",
-        "cancel_url": f"{_base()}/?checkout=cancelled",
+                       "?session_id={CHECKOUT_SESSION_ID}" + back,
+        "cancel_url": f"{_base()}{page}?checkout=cancelled",
         "allow_promotion_codes": True,
     }
     if account.stripe_customer_id:
@@ -236,6 +245,10 @@ def _our_plan_id(sub: dict) -> str | None:
 
 def apply_subscription(session: Session, sub: dict) -> None:
     """Mirror a Stripe subscription onto its account."""
+    from . import subrep  # subrep imports api, which imports this module
+
+    if subrep.apply_subscription(session, sub):
+        return
     plan_id = _our_plan_id(sub)
     if plan_id is None:
         log.info("subscription %s is not for a plan of this site; ignored", sub.get("id"))
@@ -279,10 +292,11 @@ def fulfil(session: Session, checkout: dict) -> Account | None:
     )
     # A retired plan too: the buyer may have opened the payment page before
     # the plan was retired.
-    from . import captions  # captions imports api, which imports this module
+    from . import captions, subrep  # they import api, which imports this module
 
     plan = (pricing.get(meta.get("plan_id") or "", retired=True)
-            or captions.pack(meta.get("plan_id") or ""))
+            or captions.pack(meta.get("plan_id") or "")
+            or subrep.plan(meta.get("plan_id") or ""))
     if account is None or plan is None:
         log.error("checkout %s: unknown account or plan %r", checkout.get("id"), meta)
         return None

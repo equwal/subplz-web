@@ -425,10 +425,16 @@ def create_checkout(
     return {"url": url}
 
 
+# The pages that a checkout can come back to. Any other page goes to "/", so
+# the return trip cannot send the browser off this site.
+RETURN_PAGES = {"/", "/subrep.html"}
+
+
 @router.get("/billing/return")
 def checkout_return(
     session_id: str,
     session: Annotated[Session, Depends(get_session)],
+    page: str = "/",
 ):
     """Where Stripe sends the browser after paying.
 
@@ -442,7 +448,8 @@ def checkout_return(
     except payments.PaymentsUnavailable:
         paid = False
     state = "paid" if paid else "pending"
-    return RedirectResponse(f"/?checkout={state}", status_code=303)
+    page = page if page in RETURN_PAGES else "/"
+    return RedirectResponse(f"{page}?checkout={state}", status_code=303)
 
 
 @router.post("/billing/webhook")
