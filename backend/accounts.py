@@ -64,9 +64,10 @@ def merge(session: Session, src: Account, dst: Account) -> None:
     session.query(Purchase).filter(Purchase.account_id == src.id).update(
         {Purchase.account_id: dst.id}, synchronize_session=False
     )
-    from . import captions  # captions imports api, which imports this module
+    from . import captions, subrep  # they import api, which imports this module
 
     captions.merge(session, src, dst)
+    subrep.merge(session, src, dst)
     dst.purchased_credits += src.purchased_credits
     src.purchased_credits = 0
     # Add the free credits used, not the free credits left: a second device

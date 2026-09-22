@@ -13,6 +13,10 @@ mobi>=0.4
 # small and pure Python, and leaving it optional only makes deploys fiddlier.
 stripe>=13
 
+# Subrep Pro licences (backend/subrep.py): Ed25519 signatures that the Subrep
+# desktop app checks. The standard library has no Ed25519.
+cryptography>=42
+
 # --- public deployment extras (not needed on localhost) ---
 # redis>=5.0          # SUBPLZ_WEB_QUEUE_BACKEND=redis
 # rq>=1.16            # external worker processes

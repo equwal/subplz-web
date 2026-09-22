@@ -141,6 +141,13 @@ class Settings(BaseSettings):
     # The longest piece of speech in one request. The app sends 11 s at most.
     caption_max_seconds: int = 30
 
+    # --- Subrep Pro -------------------------------------------------------
+    # The Ed25519 key that signs the licences of the Subrep desktop app
+    # (base64url of the 32-byte private key). Without it, Subrep Pro is not
+    # for sale. Make it on the server with tools/subrep_key.py: every licence
+    # of every customer depends on it, so never replace it.
+    subrep_license_key: str = ""
+
     # --- uploads -----------------------------------------------------------
     max_upload_bytes: int = 2 * 1024 * 1024 * 1024  # 2 GiB
 
