@@ -395,3 +395,12 @@ def test_the_key_tool_makes_one_key_and_never_replaces_it(tmp_path, monkeypatch,
     assert tool.main() == 0
     assert capsys.readouterr().out.strip() == public
     assert env.read_text(encoding="utf-8") == text
+
+
+def test_the_page_gives_a_buyer_the_windows_installer(client):
+    # A buyer lands on the Pro part of the page after paying, and needs the
+    # app there, with the setup key.
+    page = client.get("/subrep.html").text
+    pro = page[page.index('id="pro"'):page.index('id="ios"')]
+    assert 'href="https://honjimaku.com/subrep/SubrepSetup.exe"' in pro
+    assert 'id="link-key"' in pro
