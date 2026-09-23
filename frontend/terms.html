@@ -21,8 +21,9 @@
   <p>SubRead lines an audiobook up with its ebook and gives you timed subtitles, videos and a
     read-along book. All of the code is public, and you may run it yourself.</p>
   <ul>
-    <li><strong>In your browser (free):</strong> the work is done on your machine. Your audio and
-      your book are not uploaded. The server gets the names and sizes of the files and the
+    <li><strong>In your browser (free):</strong> the work is done on your machine, and it uses no
+      credit. During the beta, the page also sends a copy of your audio and your book to our server
+      (see <a href="#debug-data">Input data kept for debugging</a>). The server also gets the
       finished subtitles, so that this page can list your conversions.</li>
     <li><strong>On our server (credits):</strong> you upload the audio and the book, and the server
       does the work. One credit converts one book. New visitors get some free credits to try it.</li>
@@ -38,6 +39,18 @@
       automatically: we delete them by hand. Write to us to have your files deleted.</li>
     <li>We look at your files only to find and fix faults in a conversion. They are not shared,
       and they are not used to train anything. There is no public library of uploads.</li>
+  </ul>
+
+  <h2 id="debug-data">Input data kept for debugging (beta)</h2>
+  <ul>
+    <li>During the beta, we keep the input data of each conversion on our server: the audio and the
+      book. This is also true for a conversion in your browser: while it converts, the page sends a
+      copy of your audio and your book to our server.</li>
+    <li>We keep the input data together with the results of the conversion, so that we can find and
+      fix a fault that you report to us. We use it for nothing else. We do not share it, and we do
+      not use it to train anything.</li>
+    <li>Nothing deletes the input data automatically: we delete it by hand. Write to us to have your
+      data deleted.</li>
   </ul>
 
   <h2>Payments and refunds</h2>

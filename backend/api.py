@@ -13,6 +13,7 @@ checkout, its return trip and its webhook).
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -192,6 +193,9 @@ class AccountOut(BaseModel):
     subscription_ends: str | None
     cloud_allowed: bool
     queue_depth: int
+    # During the beta, the page sends a copy of the files of a job in the
+    # browser to the server (settings.browser_copy).
+    browser_copy: bool = False
 
 
 class LocalJobIn(BaseModel):
@@ -324,6 +328,7 @@ def _account_out(session: Session, account: Account) -> AccountOut:
         cloud_available=settings.cloud_enabled,
         cloud_allowed=ent.cloud_allowed or not settings.billing_enabled,
         queue_depth=queue.depth(),
+        browser_copy=settings.browser_copy,
     )
 
 
@@ -762,10 +767,51 @@ def finish_local_job(
             session.add(Artifact(job_id=job.id, kind=kind, filename=filename,
                                  storage_key=key, size_bytes=size))
 
+    if settings.browser_copy:
+        # The subtitles go next to the copy of the audio and the book.
+        root = Paths.for_job(job.id).root
+        root.mkdir(parents=True, exist_ok=True)
+        (root / (_plain_name(body.filename) or "subtitles.srt")).write_bytes(
+            body.srt.encode("utf-8"))
+
     job.status = JobStatus.succeeded
     job.stage, job.progress, job.finished_at = "Done", 1.0, utcnow()
     session.commit()
     return _job_out(job, _artifacts(session, job.id))
+
+
+def _plain_name(raw: str) -> str:
+    """The last part of a file name from a browser, with no folder in it."""
+    name = re.split(r"[\\/]", raw or "")[-1].strip()
+    return "" if name in ("", ".", "..") else name
+
+
+@router.post("/local/jobs/{job_id}/files")
+async def copy_local_job_files(
+    job_id: str,
+    account: Annotated[Account, Depends(get_account)],
+    session: Annotated[Session, Depends(get_session)],
+    files: Annotated[list[UploadFile], File()],
+):
+    """Keep a copy of the audio and the book of a job in the browser.
+
+    Only during the beta (settings.browser_copy), for debugging, as the
+    privacy and user data policy says. The copy goes with the other files of
+    the job, and it costs no credit.
+    """
+    if not settings.browser_copy:
+        raise HTTPException(404, "Not found")
+    job = _load(session, account, job_id)
+    if not job.local:
+        raise HTTPException(409, "A server job has its files already.")
+    inp = Paths.for_job(job.id).inp
+    saved = 0
+    for upload in files:
+        name = _plain_name(upload.filename or "")
+        if name:
+            await _save(upload, inp / name)
+            saved += 1
+    return {"saved": saved}
 
 
 @router.post("/local/jobs/{job_id}/fail", response_model=JobOut)

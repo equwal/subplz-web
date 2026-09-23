@@ -27,3 +27,16 @@ def test_the_browser_mode_says_that_it_uses_no_credit(client):
     app = client.get("/app.js").text
     assert "'Uses no credit, and has no limit." in app
     assert "do the work.' + serverPrice()" not in app
+
+
+def test_the_page_tells_how_it_keeps_user_data(client):
+    # During the beta a job in the browser sends a copy of its files to the
+    # server (settings.browser_copy). The page must say so, point to the
+    # policy, and make no promise that the copy breaks.
+    page = client.get("/").text
+    app = client.get("/app.js").text
+    notice = re.search(r'<p[^>]*id="data-notice"[^>]*>(.*?)</p>', page, re.S)
+    assert notice and 'href="/terms.html#debug-data"' in notice.group(1)
+    assert 'id="debug-data"' in client.get("/terms.html").text
+    for promise in ("never uploaded", "not uploaded", "nothing is uploaded"):
+        assert promise not in page and promise not in app, promise

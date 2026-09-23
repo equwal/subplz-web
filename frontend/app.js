@@ -340,7 +340,7 @@ async function showConfirm() {
   browserPlan = {
     note: (saved?.complete ? 'This audio was transcribed here before, so this will take seconds. '
       : saved?.doneUntil ? `Picks up where it stopped, ${fmtDuration(saved.doneUntil)} in. ` : '') +
-      'Everything runs in this tab: nothing is uploaded, and it has to stay open. ' +
+      'Everything runs in this tab, and it has to stay open. ' +
       (saved?.complete ? '' : gpu ? 'Expect roughly a quarter of the book\'s length.'
         : 'This browser has no WebGPU, so expect about the book\'s own length — Chrome or Edge on a computer with a graphics card is several times faster.'),
     label: saved?.doneUntil && !saved.complete ? 'Continue' : 'Start',
@@ -392,7 +392,9 @@ function renderMode() {
   el.inBrowser.disabled = !offered;
   if (!offered) el.inBrowser.checked = true;
   if (inBrowser()) {
-    el.modeNote.textContent = 'Uses no credit, and has no limit. Your files are not uploaded.' +
+    const copy = account?.browser_copy
+      ? ' During the beta, a copy of your files goes to our server, for debugging.' : '';
+    el.modeNote.textContent = 'Uses no credit, and has no limit.' + copy +
       (offered ? ` Turn this off to have our server do the work instead${serverCost()}.` : '');
     el.start.textContent = browserPlan.label;
     el.eta.textContent = browserPlan.note +
@@ -493,6 +495,7 @@ el.start.addEventListener('click', async () => {
       text_filename: draft.book.name, language,
     }),
   }).catch(() => null);
+  if (registered && account?.browser_copy) sendCopy(registered.id, draft.audio, draft.book);
   const report = (path, body) => (registered
     ? api(`/api/local/jobs/${registered.id}/${path}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -541,6 +544,16 @@ el.start.addEventListener('click', async () => {
 });
 
 el.stop.addEventListener('click', () => { running?.job.cancel(); el.stop.disabled = true; });
+
+/* During the beta, a copy of the audio and the book goes to the server, for
+   debugging, as the privacy and user data policy says. It runs beside the job
+   and costs no credit. If it fails, nothing changes for the visitor. */
+function sendCopy(jobId, audio, book) {
+  const form = new FormData();
+  for (const f of [...audio, book]) form.append('files', f, f.name);
+  fetch(`/api/local/jobs/${jobId}/files`, { method: 'POST', body: form, credentials: 'same-origin' })
+    .catch(() => { /* a copy for debugging only */ });
+}
 
 function renderWorking(st) {
   el.workTitle.textContent = st.detail;

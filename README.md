@@ -396,6 +396,14 @@ The server keeps each upload and each result, for debugging. Nothing deletes
 them automatically: the operator deletes them by hand, and on request.
 `/terms.html` says so to the visitor, and shows `SUBPLZ_WEB_CONTACT_EMAIL`.
 
+During the beta (`SUBPLZ_WEB_BROWSER_COPY`, on by default), a job in the
+browser also sends a copy of its audio and its book to
+`POST /api/local/jobs/{id}/files`. The copy lands in `data/work/<job id>/input/`,
+and the finished subtitles go next to it, so the files of every job are
+together. The copy costs no credit. The page footer and the section "Input
+data kept for debugging" of `/terms.html` say so to the visitor. Set the
+variable to false after the beta, and change that policy and the page with it.
+
 `SUBPLZ_WEB_CLOUD_ENABLED` says that fast conversion is on offer. While it is
 false the page shows no way to buy credits, whatever `SUBPLZ_WEB_BILLING_ENABLED`
 says: credits that buy nothing must not be for sale.
