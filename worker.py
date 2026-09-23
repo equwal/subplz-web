@@ -16,11 +16,15 @@ Workers and the API must share the database and the storage bucket. They do not
 need to share a filesystem: staged uploads are the one thing that is local to
 whoever received them, which is why the API writes uploads to shared storage
 before enqueuing when the queue backend is redis.
+
+SUBPLZ_WEB_WORKER_QUEUES says which jobs this worker takes, in order: "paid,free"
+(the default: paid jobs first) or "paid" (a burst worker, see infra/burst).
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 
 from backend.settings import settings
@@ -30,6 +34,18 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
 )
 log = logging.getLogger("subplz.worker")
+
+
+def queue_names() -> list[str]:
+    """The Redis queues of this worker, the first one first."""
+    from backend.queue import FREE_QUEUE, PAID_QUEUE
+
+    known = {"paid": PAID_QUEUE, "free": FREE_QUEUE}
+    wanted = [n.strip() for n in os.environ.get("SUBPLZ_WEB_WORKER_QUEUES", "paid,free").split(",")]
+    unknown = [n for n in wanted if n not in known]
+    if unknown or not wanted:
+        raise ValueError(f"SUBPLZ_WEB_WORKER_QUEUES: unknown queue {unknown}; use paid and free")
+    return [known[n] for n in wanted]
 
 
 def main() -> int:
@@ -49,15 +65,16 @@ def main() -> int:
         return 2
 
     conn = Redis.from_url(settings.redis_url)
-    queue = Queue("subplz-jobs", connection=conn)
+    queues = [Queue(name, connection=conn) for name in queue_names()]
 
     log.info(
-        "worker starting | redis=%s | device=%s model=%s | storage=%s",
-        settings.redis_url, settings.device, settings.model,
+        "worker starting | queues=%s | device=%s model=%s | storage=%s",
+        ",".join(q.name for q in queues), settings.device, settings.model,
         settings.storage_backend,
     )
-    # burst=False: stay alive and keep taking jobs.
-    Worker([queue], connection=conn).work(with_scheduler=False)
+    # burst=False: stay alive and keep taking jobs. rq takes a job from the
+    # first queue that has one, so the order of the queues is their priority.
+    Worker(queues, connection=conn).work(with_scheduler=False)
     return 0
 
 

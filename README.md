@@ -490,6 +490,14 @@ With an external queue the API copies staged uploads into shared storage before
 enqueuing, and the worker pulls them down, so the API and workers do not need a
 shared filesystem.
 
+Paid jobs and free jobs go to separate queues. `SUBPLZ_WEB_WORKER_QUEUES`
+sets which a worker takes: `paid,free` (the default) or `paid`.
+
+**Burst mode** adds workers on the cheapest cloud (AWS spot or Hetzner) when
+paid jobs wait, and removes them when they are idle. It is built with
+Terraform and is off until the operator turns it on: see
+[`infra/burst/README.md`](infra/burst/README.md).
+
 ### Before going public
 
 - Set the Stripe keys, the webhook and SMTP (see *Turning payments on*).

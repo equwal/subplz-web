@@ -1,0 +1,163 @@
+#cloud-config
+# One burst worker, on any cloud: the subplz-web app at commit ${ref}, running
+# worker.py on the paid queue. Postgres and Redis stay on the web server; the
+# worker reaches them through an SSH tunnel, on its own 127.0.0.1. The worker
+# modules (workers/aws, workers/hetzner) render this file.
+hostname: ${name}
+preserve_hostname: false
+package_update: true
+packages:
+  - autossh
+  - curl
+  - ffmpeg
+  - git
+  - python3-venv
+users:
+  - name: subplz
+    system: true
+    homedir: /opt/subplz-web
+    shell: /usr/sbin/nologin
+write_files:
+  - path: /etc/subplz-worker.env
+    owner: root:root
+    permissions: "0600"
+    content: |
+      SUBPLZ_WEB_QUEUE_BACKEND=redis
+      SUBPLZ_WEB_WORKER_QUEUES=paid
+      SUBPLZ_WEB_REDIS_URL=${redis_url}
+      SUBPLZ_WEB_DATABASE_URL=${database_url}
+      SUBPLZ_WEB_STORAGE_BACKEND=s3
+      SUBPLZ_WEB_S3_BUCKET=${bucket}
+      SUBPLZ_WEB_S3_PREFIX=${s3_prefix}
+      SUBPLZ_WEB_DEVICE=cpu
+      SUBPLZ_WEB_THREADS=${threads}
+      HOME=/opt/subplz-web
+      ${indent(6, storage_env)}
+  - path: /etc/subplz/tunnel_key
+    permissions: "0600"
+    content: |
+      ${indent(6, tunnel_private_key)}
+  - path: /etc/subplz/known_hosts
+    permissions: "0644"
+    content: |
+      ${known_hosts}
+  - path: /etc/systemd/system/subplz-tunnel.service
+    content: |
+      [Unit]
+      Description=SSH tunnel to Postgres and Redis on the web server
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User=subplz
+      Environment=AUTOSSH_GATETIME=0
+      ExecStart=/usr/bin/autossh -M 0 -N -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/subplz/known_hosts -o IdentitiesOnly=yes -i /etc/subplz/tunnel_key -p ${ssh_port} -L 127.0.0.1:5432:127.0.0.1:5432 -L 127.0.0.1:6379:127.0.0.1:6379 subplz-tunnel@${web_server_ip}
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/subplz-worker.service
+    content: |
+      [Unit]
+      Description=subplz-web burst worker
+      After=subplz-tunnel.service
+      Requires=subplz-tunnel.service
+
+      [Service]
+      User=subplz
+      WorkingDirectory=/opt/subplz-web
+      EnvironmentFile=/etc/subplz-worker.env
+      Environment=PATH=/opt/subplz-web/.venv/bin:/usr/local/bin:/usr/bin:/bin
+      ExecStart=/opt/subplz-web/.venv/bin/python worker.py
+      # After the shutdown command of the burst controller, rq finishes its job
+      # and exits with 0. Then the worker must stay stopped.
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/subplz-idle-check.service
+    content: |
+      [Unit]
+      Description=Power off this burst machine when its worker is idle too long
+
+      [Service]
+      Type=oneshot
+      EnvironmentFile=/etc/subplz-worker.env
+      ExecStart=/bin/bash /opt/subplz-install/idle-check.sh
+  - path: /etc/systemd/system/subplz-idle-check.timer
+    content: |
+      [Unit]
+      Description=Check each 10 minutes whether the worker is idle
+
+      [Timer]
+      OnActiveSec=10min
+      OnUnitActiveSec=10min
+
+      [Install]
+      WantedBy=timers.target
+  - path: /opt/subplz-install/idle-check.sh
+    permissions: "0700"
+    content: |
+      #!/bin/bash
+      # A safety net for the burst controller: if the controller is gone, this
+      # machine still stops. After ${idle_checks} idle checks in a row (10 minutes
+      # each), or when Redis cannot be reached, power off. On AWS a power-off
+      # ends the machine and its bill; on Hetzner the controller then deletes it.
+      state_file=/var/lib/subplz-idle-count
+      state=$(/opt/subplz-web/.venv/bin/python - <<'PY' 2>/dev/null || echo idle
+      import os, socket
+      from redis import Redis
+      from rq import Worker
+      conn = Redis.from_url(os.environ["SUBPLZ_WEB_REDIS_URL"], socket_timeout=10)
+      host = socket.gethostname()
+      states = [w.get_state() for w in Worker.all(connection=conn) if w.hostname == host]
+      print("busy" if "busy" in states else "idle")
+      PY
+      )
+      if [ "$state" = "busy" ]; then
+        echo 0 > "$state_file"
+        exit 0
+      fi
+      count=$(( $(cat "$state_file" 2>/dev/null || echo 0) + 1 ))
+      echo "$count" > "$state_file"
+      if [ "$count" -ge ${idle_checks} ]; then
+        systemctl poweroff
+      fi
+  - path: /opt/subplz-install/constraints.txt
+    content: |
+      ${indent(6, constraints)}
+  - path: /opt/subplz-install/install.sh
+    permissions: "0700"
+    content: |
+      #!/bin/bash
+      # Install the app from the bucket (the repository is private), then the
+      # speech stack at the versions of the web server, then start the tunnel,
+      # the worker and the idle check.
+      set -euo pipefail
+      set -a
+      . /etc/subplz-worker.env
+      set +a
+      chown subplz /etc/subplz/tunnel_key
+      cd /opt/subplz-install
+      curl --fail --silent --show-error --retry 5 \
+        --aws-sigv4 "aws:amz:$AWS_DEFAULT_REGION:s3" \
+        --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+        -o app.tar.gz "$AWS_ENDPOINT_URL_S3/$SUBPLZ_WEB_S3_BUCKET/releases/${ref}.tar.gz"
+      mkdir -p /opt/subplz-web
+      tar -xzf app.tar.gz -C /opt/subplz-web
+      python3 -m venv /opt/subplz-web/.venv
+      pip=/opt/subplz-web/.venv/bin/pip
+      # CPU builds of torch and torchaudio both come from the PyTorch index. A
+      # torchaudio from PyPI is a CUDA build and fails at run time. Their
+      # dependencies come from PyPI in the next step, at the pinned versions.
+      $pip install --quiet --no-deps --index-url https://download.pytorch.org/whl/cpu \
+        -c constraints.txt torch torchaudio
+      $pip install --quiet -c constraints.txt torch torchaudio "${subplz_spec}" \
+        -r /opt/subplz-web/requirements.txt redis rq boto3 "psycopg[binary]"
+      chown -R subplz:subplz /opt/subplz-web
+      systemctl daemon-reload
+      systemctl enable --now subplz-tunnel.service subplz-worker.service subplz-idle-check.timer
+runcmd:
+  - [bash, /opt/subplz-install/install.sh]

@@ -43,7 +43,7 @@ init_db()
 @pytest.fixture(autouse=True)
 def _no_real_work(monkeypatch):
     """Starting a job must not actually launch an alignment."""
-    monkeypatch.setattr(api.queue, "enqueue", lambda job_id: None)
+    monkeypatch.setattr(api.queue, "enqueue", lambda job_id, paid=True: None)
 
 
 @pytest.fixture(autouse=True)

@@ -675,7 +675,7 @@ def start_job(
     job.error = None
     session.commit()
 
-    queue.enqueue(job.id)
+    queue.enqueue(job.id, paid=billing.is_paid(job))
     return _job_out(job, [])
 
 

@@ -1,0 +1,15 @@
+[Unit]
+Description=subplz-web burst controller: start burst workers on the cheapest cloud
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/subplz-web
+# The app settings (SUBPLZ_WEB_REDIS_URL, SUBPLZ_WEB_S3_BUCKET, the database),
+# the storage keys, and the cloud keys for Terraform (see infra/burst/README.md).
+EnvironmentFile=/opt/subplz-web/.env
+EnvironmentFile=/etc/subplz-storage.env
+EnvironmentFile=/etc/subplz-burst.env
+ExecStart=/opt/subplz-web/.venv/bin/python -m tools.burst

@@ -1,0 +1,21 @@
+[Unit]
+Description=subplz-web worker on the web server
+After=network-online.target subplz-web.service
+Wants=network-online.target
+
+[Service]
+User=subplz
+WorkingDirectory=/opt/subplz-web
+EnvironmentFile=/opt/subplz-web/.env
+EnvironmentFile=/etc/subplz-storage.env
+Environment=PATH=/opt/subplz-web/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/opt/subplz-web
+ExecStart=/opt/subplz-web/.venv/bin/python worker.py
+# Postgres and Redis run on this machine too: if memory runs out, the kernel
+# must stop this worker, not the database.
+MemoryMax=2800M
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

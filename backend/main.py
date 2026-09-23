@@ -19,7 +19,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import captions, subrep
+from . import billing, captions, subrep
 from .api import router
 from .db import Job, JobStatus, SessionLocal, init_db
 from .languages import all_languages
@@ -61,7 +61,12 @@ def _requeue_interrupted() -> None:
 
     An in-process queue dies with the process, so anything left `running` is
     orphaned. Put it back in the queue rather than leaving a stuck progress bar.
+
+    A Redis queue keeps its jobs, and a worker on another machine may still run
+    one. Putting that job on the queue again would convert the book twice.
     """
+    if settings.queue_backend != "memory":
+        return
     with SessionLocal() as s:
         stale = (
             s.query(Job)
@@ -73,10 +78,10 @@ def _requeue_interrupted() -> None:
             job.stage = "Queued (resumed after restart)"
             job.progress = 0.0
         s.commit()
-        ids = [j.id for j in stale]
+        ids = [(j.id, billing.is_paid(j)) for j in stale]
 
-    for job_id in ids:
-        queue.enqueue(job_id)
+    for job_id, paid in ids:
+        queue.enqueue(job_id, paid=paid)
     if ids:
         log.info("re-queued %d interrupted job(s)", len(ids))
 

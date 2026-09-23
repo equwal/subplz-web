@@ -3,6 +3,10 @@
 Localhost runs jobs on a small thread pool inside the API process. The public
 deployment sets SUBPLZ_WEB_QUEUE_BACKEND=redis and runs `worker.py` on separate
 machines; the API side then only enqueues. Same `enqueue(job_id)` call either way.
+
+A paid job and a free job go to different Redis queues. The web server's own
+worker takes both, paid jobs first. A burst worker takes paid jobs only (see
+infra/burst/README.md), so a free credit never starts a machine that costs money.
 """
 
 from __future__ import annotations
@@ -16,11 +20,14 @@ from .settings import settings
 
 log = logging.getLogger(__name__)
 
+PAID_QUEUE = "subplz-jobs-paid"
+FREE_QUEUE = "subplz-jobs"
+
 
 class JobQueue(ABC):
     @abstractmethod
-    def enqueue(self, job_id: str) -> None:
-        ...
+    def enqueue(self, job_id: str, paid: bool = True) -> None:
+        """Run `job_id`. `paid` is False for a job that a free credit pays for."""
 
     @abstractmethod
     def depth(self) -> int:
@@ -44,7 +51,7 @@ class InProcessQueue(JobQueue):
         self._lock = threading.Lock()
         self._pending: set[str] = set()
 
-    def enqueue(self, job_id: str) -> None:
+    def enqueue(self, job_id: str, paid: bool = True) -> None:
         with self._lock:
             if job_id in self._pending:
                 return
@@ -79,18 +86,25 @@ class RedisQueue(JobQueue):
         from rq import Queue as RQQueue
 
         self._conn = Redis.from_url(url)
-        self._q = RQQueue("subplz-jobs", connection=self._conn)
+        self._paid = RQQueue(PAID_QUEUE, connection=self._conn)
+        self._free = RQQueue(FREE_QUEUE, connection=self._conn)
 
-    def enqueue(self, job_id: str) -> None:
-        self._q.enqueue(
+    def enqueue(self, job_id: str, paid: bool = True) -> None:
+        from rq import Retry
+
+        (self._paid if paid else self._free).enqueue(
             "backend.runner.run_job",
             job_id,
             job_timeout=settings.job_timeout_seconds,
             result_ttl=86400,
+            # A worker can vanish during a job (a spot machine is taken back).
+            # rq then puts the job back on its queue once: two attempts at most.
+            # run_job never raises, so a failed book is not tried again.
+            retry=Retry(max=1),
         )
 
     def depth(self) -> int:
-        return self._q.count + self._q.started_job_registry.count
+        return sum(q.count + q.started_job_registry.count for q in (self._paid, self._free))
 
 
 def build_queue() -> JobQueue:

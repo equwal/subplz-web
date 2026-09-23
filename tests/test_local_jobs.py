@@ -101,7 +101,7 @@ def test_restart_does_not_queue_browser_jobs(client, monkeypatch):
 
     job = begin(client).json()
     queued = []
-    monkeypatch.setattr(main.queue, "enqueue", queued.append)
+    monkeypatch.setattr(main.queue, "enqueue", lambda job_id, paid=True: queued.append(job_id))
     main._requeue_interrupted()
     assert job["id"] not in queued
     assert get_job_row(job["id"]).status == JobStatus.running

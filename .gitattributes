@@ -1,1 +1,9 @@
 *.sh text eol=lf
+# Terraform, templates and unit files run on Linux: a CR would reach the
+# cloud-init file, the env files and the shell scripts of a worker.
+*.tf text eol=lf
+*.tftpl text eol=lf
+*.hcl text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+*.pub text eol=lf

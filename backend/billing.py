@@ -290,3 +290,10 @@ def refund_job(job_id: str) -> None:
         if job is not None:
             refund(session, job)
             session.commit()
+
+
+def is_paid(job: Job) -> bool:
+    """True for a server job that money pays for: a bought credit, a book of a
+    monthly plan, or an unlimited plan. False for a free credit, the daily
+    credit, and a browser job. Only paid jobs may start a burst worker."""
+    return not (job.local or job.free_credit_spent or job.daily_credit_on is not None)
