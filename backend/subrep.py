@@ -14,8 +14,10 @@ How the desktop app gets Pro:
 
 1. The customer pays here. A Stripe subscription makes the account Pro until
    the end of the paid period (SubrepLicence).
-2. The Subrep page (/subrep.html) shows a link command with the account id
-   and a refresh key. The customer runs it once on each computer.
+2. The Subrep page (/subrep.html) shows the email of the account and a setup
+   key (the refresh key). The customer enters the two in the Licence card of
+   the desktop control panel, or runs the link command, once on each
+   computer.
 3. The app sends the two to POST /api/subrep/refresh and gets a licence token:
    JSON claims, signed with the Ed25519 key of this server
    (SUBPLZ_WEB_SUBREP_LICENSE_KEY, made by tools/subrep_key.py). The app
@@ -239,9 +241,17 @@ class LicenceRefused(Exception):
 
 def token(session: Session, account_id: str, refresh_key: str,
           now: datetime | None = None) -> str:
-    """A licence token for the desktop app, or LicenceRefused."""
+    """A licence token for the desktop app, or LicenceRefused.
+
+    `account_id` is the id of the account, or its email: the Licence card of
+    the desktop control panel asks for the email that paid.
+    """
     now = now or utcnow()
-    account = session.get(Account, account_id or "")
+    ident = (account_id or "").strip()
+    if "@" in ident:
+        account = accounts.by_email(session, ident.lower())
+    else:
+        account = session.get(Account, ident)
     if account is not None:
         account = accounts.resolve(session, account)
     row = licence(session, account.id) if account is not None else None
@@ -253,10 +263,13 @@ def token(session: Session, account_id: str, refresh_key: str,
     if not is_pro(row, now):
         raise LicenceRefused(402, "This account has no active Subrep Pro plan.")
     latest = now + timedelta(days=TOKEN_DAYS)
-    end = min(billing._aware(row.period_end) or latest, latest)
+    # "paid" is what the customer sees: the end of the paid period. "exp" is
+    # when the app must ask again.
+    paid = billing._aware(row.period_end) or latest
     return sign({"sub": account.email or account.id, "tier": "pro",
                  "plan": row.plan_id, "iat": int(now.timestamp()),
-                 "exp": int(end.timestamp())})
+                 "paid": int(paid.timestamp()),
+                 "exp": int(min(paid, latest).timestamp())})
 
 
 def link(session: Session, account: Account) -> dict:
@@ -270,6 +283,7 @@ def link(session: Session, account: Account) -> dict:
     server = f"{settings.public_base_url.rstrip('/')}/api/subrep"
     return {
         "account": account.id,
+        "email": account.email,
         "refresh_key": row.refresh_key,
         "server": server,
         "command": f'subrep license --link "{account.id}" "{row.refresh_key}" "{server}"',
