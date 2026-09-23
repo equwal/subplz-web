@@ -81,6 +81,15 @@ def test_the_redis_queue_keeps_paid_and_free_jobs_apart(monkeypatch):
     assert q.depth() == 2
 
 
+def test_a_job_whose_worker_dies_gets_one_more_attempt(monkeypatch):
+    # A spot machine can vanish during a job. rq puts such a job back on its
+    # queue while the job has retries left: one retry, so two attempts at most.
+    conn = fakeredis.FakeRedis()
+    monkeypatch.setattr("redis.Redis.from_url", lambda url: conn)
+    jobqueue.RedisQueue("redis://unused").enqueue("job_1", paid=True)
+    assert Queue(jobqueue.PAID_QUEUE, connection=conn).jobs[0].retries_left == 1
+
+
 def test_the_web_server_worker_takes_paid_jobs_first(monkeypatch):
     monkeypatch.delenv("SUBPLZ_WEB_WORKER_QUEUES", raising=False)
     assert worker.queue_names() == [jobqueue.PAID_QUEUE, jobqueue.FREE_QUEUE]

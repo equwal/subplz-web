@@ -90,11 +90,17 @@ class RedisQueue(JobQueue):
         self._free = RQQueue(FREE_QUEUE, connection=self._conn)
 
     def enqueue(self, job_id: str, paid: bool = True) -> None:
+        from rq import Retry
+
         (self._paid if paid else self._free).enqueue(
             "backend.runner.run_job",
             job_id,
             job_timeout=settings.job_timeout_seconds,
             result_ttl=86400,
+            # A worker can vanish during a job (a spot machine is taken back).
+            # rq then puts the job back on its queue once: two attempts at most.
+            # run_job never raises, so a failed book is not tried again.
+            retry=Retry(max=1),
         )
 
     def depth(self) -> int:
