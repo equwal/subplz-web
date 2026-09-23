@@ -40,6 +40,7 @@ DAY = 86400
 @pytest.fixture(autouse=True)
 def licence_key(monkeypatch):
     monkeypatch.setattr(settings, "subrep_license_key", PRIVATE_KEY)
+    monkeypatch.setattr(settings, "subrep_for_sale", True)
 
 
 def b64d(text: str) -> bytes:
@@ -181,6 +182,19 @@ def test_a_server_without_a_licence_key_sells_nothing(client, monkeypatch):
     monkeypatch.setattr(settings, "subrep_license_key", "")
     assert state(client)["available"] is False
     assert client.post("/api/subrep/checkout", json={"plan_id": "subrep_year"}).status_code == 503
+
+
+def test_until_the_sale_opens_nothing_is_sold_but_a_licence_still_renews(client, monkeypatch):
+    # The key comes first, then a desktop build with its public key, then the
+    # sale. A buyer must never pay for a licence that the app cannot check.
+    acct = buy(client, monkeypatch)
+    key = state(client)["link"]["refresh_key"]
+    monkeypatch.setattr(settings, "subrep_for_sale", False)
+    s = state(client)
+    assert s["available"] is False and s["public_key"] is not None
+    fake_checkout(monkeypatch)
+    assert client.post("/api/subrep/checkout", json={"plan_id": "subrep_month"}).status_code == 503
+    assert refresh(client, acct, key).status_code == 200
 
 
 # --- Pro, the link command and the licence -------------------------------------

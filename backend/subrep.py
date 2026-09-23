@@ -135,8 +135,9 @@ def can_sign() -> bool:
 
 
 def available() -> bool:
-    """Subrep Pro is for sale: the server can take the money and sign a licence."""
-    return can_sign() and settings.payments_configured
+    """Subrep Pro is for sale: the owner opened the sale, and the server can
+    take the money and sign a licence."""
+    return settings.subrep_for_sale and can_sign() and settings.payments_configured
 
 
 # ---------------------------------------------------------------------------

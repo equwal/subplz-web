@@ -147,6 +147,10 @@ class Settings(BaseSettings):
     # for sale. Make it on the server with tools/subrep_key.py: every licence
     # of every customer depends on it, so never replace it.
     subrep_license_key: str = ""
+    # Open the sale only after a desktop build with the public key of
+    # subrep_license_key is out: a buyer must never pay for a licence that
+    # the app cannot check. A licence that was sold renews either way.
+    subrep_for_sale: bool = False
 
     # --- uploads -----------------------------------------------------------
     max_upload_bytes: int = 2 * 1024 * 1024 * 1024  # 2 GiB
