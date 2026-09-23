@@ -31,3 +31,10 @@ tests/engine/excerpt-local/
 
 # Test tooling for the browser engine
 node_modules/
+
+# Terraform (infra/burst): providers, and state files, which hold passwords.
+# The state lives in /var/lib/subplz-burst on the web server, not here.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log

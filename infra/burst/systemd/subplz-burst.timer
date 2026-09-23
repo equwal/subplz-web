@@ -1,0 +1,9 @@
+[Unit]
+Description=Run the subplz-web burst controller once a minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target
