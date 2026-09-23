@@ -99,10 +99,11 @@ Only the owner does these steps. Claude never types a key.
 2. **AWS**, for spot workers: an account on the Paid plan (the Free plan blocks
    xlarge machines), with MFA on the root user. Make an IAM user
    `subplz-burst` with the policy in `workers/aws/iam-policy.json`, and an
-   access key for it.
+   access key for it. Sign up: [AWS sign-up](https://portal.aws.amazon.com/billing/signup).
 3. **Hetzner**, for Hetzner workers: an account, a project `subplz-burst` with
    nothing else in it, and an API token (Read & Write) in that project. Check
-   the server limit of the project (Limits).
+   the server limit of the project (Limits). Sign up:
+   [Hetzner sign-up](https://accounts.hetzner.com/signUp).
 
 The controller uses each cloud that has keys. One cloud is enough; two let it
 switch to the cheaper one.
