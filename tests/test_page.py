@@ -20,10 +20,14 @@ def test_the_javascript_switch_is_on_the_first_screen_and_on(client):
     assert "JavaScript" in page[switch.start():dropzone]
 
 
-def test_the_browser_mode_says_that_it_uses_no_credit(client):
-    # The note under the switch put the price of the server after the browser
-    # mode, and it read as if the browser mode took a credit. The page writes
-    # that note when the account loads.
+def test_the_browser_mode_note_says_only_that_it_uses_no_cloud_credits(client):
+    # The note under the switch must carry no other message: not the beta
+    # debug-copy disclosure, not the server price, not an offer to turn it off.
+    page = client.get("/").text
     app = client.get("/app.js").text
-    assert "'Uses no credit, and has no limit." in app
-    assert "do the work.' + serverPrice()" not in app
+    note = re.search(r'<p[^>]*id="mode-note"[^>]*>(.*?)</p>', page, re.S)
+    assert note
+    assert note.group(1).strip() == "The JavaScript version does not use any cloud credits."
+    assert "'The JavaScript version does not use any cloud credits.'" in app
+    for gone in ("has no limit", "Turn this off", "serverCost"):
+        assert gone not in app
