@@ -150,6 +150,11 @@ class Settings(BaseSettings):
 
     # --- uploads -----------------------------------------------------------
     max_upload_bytes: int = 2 * 1024 * 1024 * 1024  # 2 GiB
+    # During the beta, a job in the browser sends a copy of its audio and its
+    # book to the server, for debugging, as the privacy and user data policy
+    # says (terms.html, "Input data kept for debugging"). Set false after the
+    # beta, and change that policy and the page at the same time.
+    browser_copy: bool = True
 
     @property
     def payments_configured(self) -> bool:
