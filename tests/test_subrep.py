@@ -247,6 +247,33 @@ def test_an_account_without_a_link_command_gets_no_licence(client, monkeypatch):
     assert refresh(client, acct, "").status_code == 403
 
 
+def test_the_control_panel_links_with_the_email_and_the_setup_key(client, monkeypatch):
+    # The Licence card of the desktop control panel asks for the email that
+    # paid and the setup key (the refresh key). The email names the account.
+    email = f"Panel-{time.time_ns()}@Example.com"
+    buy(client, monkeypatch, email=email)
+    link = state(client)["link"]
+    assert link["email"] == email.lower()
+    r = refresh(client, email, link["refresh_key"])
+    assert r.status_code == 200 and verify(r.json()["token"])["sub"] == email.lower()
+
+
+def test_another_email_gets_no_licence(client, monkeypatch):
+    buy(client, monkeypatch)
+    key = state(client)["link"]["refresh_key"]
+    assert refresh(client, f"other-{time.time_ns()}@example.com", key).status_code == 403
+
+
+def test_a_licence_says_when_the_paid_period_ends(client, monkeypatch):
+    # The desktop app shows "paid until" from the "paid" claim. The token
+    # itself ends after TOKEN_DAYS at most.
+    acct = buy(client, monkeypatch)
+    end = int(time.time()) + 365 * DAY
+    post_webhook(client, sub_event("updated", sub_object(acct, "subrep_year", period_end=end)))
+    claims = verify(refresh(client, acct, state(client)["link"]["refresh_key"]).json()["token"])
+    assert claims["paid"] == end and claims["exp"] < end
+
+
 def test_a_cancelled_plan_gets_no_licence(client, monkeypatch):
     acct = buy(client, monkeypatch, plan_id="subrep_month")
     key = state(client)["link"]["refresh_key"]

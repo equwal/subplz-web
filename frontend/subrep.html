@@ -49,13 +49,21 @@
   <section class="panel" id="pro" hidden>
     <h2>Your Subrep Pro</h2>
     <p id="pro-status"></p>
-    <p>Run this command once on each computer that has Subrep. It links the computer to this
-      account, and the computer then renews its licence by itself:</p>
+    <p>On each computer that has Subrep, open the control panel and find <strong>Licence</strong>.
+      Enter this email and this setup key. The computer then renews its licence by itself.</p>
+    <div class="command">
+      <code id="link-email"></code>
+    </div>
+    <div class="command">
+      <code id="link-key"></code>
+      <button class="ghost compact" id="copy-key" type="button">Copy</button>
+    </div>
+    <p class="muted small">Or run this command:</p>
     <div class="command">
       <code id="command"></code>
       <button class="ghost compact" id="copy" type="button">Copy</button>
     </div>
-    <p class="muted small">Keep the command private: it gives Pro to any computer that runs it.</p>
+    <p class="muted small">Keep the setup key private: it gives Pro to any computer that has it.</p>
     <div class="actions">
       <button class="ghost" id="manage" type="button">Manage plan</button>
     </div>
@@ -139,10 +147,17 @@
       const ends = new Date(state.period_end).toLocaleDateString();
       const plan = state.plans.find((p) => p.id === state.plan_id);
       $('pro-status').textContent = `${plan ? plan.name : 'Subrep Pro'}: paid until ${ends}.`;
+      $('link-email').textContent = `Email: ${state.link.email || '(none)'}`;
+      $('link-key').textContent = state.link.refresh_key;
       $('command').textContent = state.link.command;
     }
     return state;
   }
+
+  $('copy-key').addEventListener('click', async () => {
+    await navigator.clipboard.writeText($('link-key').textContent);
+    $('copy-key').textContent = 'Copied';
+  });
 
   $('copy').addEventListener('click', async () => {
     await navigator.clipboard.writeText($('command').textContent);
