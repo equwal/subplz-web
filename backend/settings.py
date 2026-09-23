@@ -134,10 +134,10 @@ class Settings(BaseSettings):
 
     # --- cloud captions (Subrep) ------------------------------------------
     # Without a key, /api/captions/transcribe answers 503. Set it with
-    # tools/set-secret.sh SUBPLZ_WEB_GROQ_API_KEY on the server.
-    groq_api_key: str = ""
-    caption_api_url: str = "https://api.groq.com/openai/v1/audio/transcriptions"
-    caption_model: str = "whisper-large-v3-turbo"
+    # tools/set-secret.sh SUBPLZ_WEB_CAPTION_API_KEY on the server.
+    caption_api_key: str = ""
+    caption_api_url: str = "https://api.deepinfra.com/v1/openai/audio/transcriptions"
+    caption_model: str = "openai/whisper-large-v3-turbo"
     # The longest piece of speech in one request. The app sends 11 s at most.
     caption_max_seconds: int = 30
 
