@@ -18,3 +18,12 @@ def test_the_javascript_switch_is_on_the_first_screen_and_on(client):
     dropzone = page.index('id="dropzone"')
     assert switch.start() < dropzone
     assert "JavaScript" in page[switch.start():dropzone]
+
+
+def test_the_browser_mode_says_that_it_uses_no_credit(client):
+    # The note under the switch put the price of the server after the browser
+    # mode, and it read as if the browser mode took a credit. The page writes
+    # that note when the account loads.
+    app = client.get("/app.js").text
+    assert "'Uses no credit, and has no limit." in app
+    assert "do the work.' + serverPrice()" not in app

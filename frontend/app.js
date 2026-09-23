@@ -378,13 +378,22 @@ function serverPrice() {
   return ' One credit a book.';
 }
 
+/* The same cost as a clause, for the note of the browser mode: the price must
+   stay with the server, or it reads as if the browser mode took a credit. */
+function serverCost() {
+  const a = account;
+  if (!a?.billing_enabled) return '';
+  if (a.unlimited) return ', which your plan includes';
+  return `, for one credit a book${a.credits > 0 ? ` (you have ${a.credits})` : ''}`;
+}
+
 function renderMode() {
   const offered = serverOffered();
   el.inBrowser.disabled = !offered;
   if (!offered) el.inBrowser.checked = true;
   if (inBrowser()) {
-    el.modeNote.textContent = 'Free, without limit, and your files are not uploaded.' +
-      (offered ? ' Turn this off to have our server do the work.' + serverPrice() : '');
+    el.modeNote.textContent = 'Uses no credit, and has no limit. Your files are not uploaded.' +
+      (offered ? ` Turn this off to have our server do the work instead${serverCost()}.` : '');
     el.start.textContent = browserPlan.label;
     el.eta.textContent = browserPlan.note +
       (offered ? '' : ' Our server is not taking conversions at the moment, so this is the one way.');
