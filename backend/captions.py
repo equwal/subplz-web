@@ -1,21 +1,25 @@
 """Cloud captions for Subrep: hours of speech recognition, bought in packs.
 
 Subrep makes live captions on the phone for free. With cloud captions, the app
-sends each piece of speech here, and this server gives it to Groq
-(whisper-large-v3-turbo), a larger model than a phone can run. The account
+sends each piece of speech here, and this server gives it to a hosted
+Whisper large-v3 turbo (DeepInfra), a larger model than a phone can run. The account
 pays with hours from a pack.
 
   20 hours    $4.99
   80 hours    $16.99
   200 hours   $39.00
 
-Groq bills about $0.04 for each audio hour, and at least 10 seconds for each
-request. Pieces of speech are 1 to 11 seconds long, so one hour costs about
-$0.08. The packs keep more than half of the price after that cost and the
-Stripe fee (owner decision, 2026-09-22).
+DeepInfra bills $0.0002 for each minute of audio: $0.012 for each hour. The
+packs keep about 90 % of the price after that cost and the Stripe fee. Prices
+and packs are an owner decision of 2026-09-22. Groq was the first choice, but
+its paid tier was not open to this account.
 
-The server takes the seconds of a piece before it calls Groq, and gives them
-back if Groq fails. So two requests at the same time cannot spend one second
+The speech service is any OpenAI-compatible transcription endpoint:
+SUBPLZ_WEB_CAPTION_API_URL, SUBPLZ_WEB_CAPTION_MODEL and
+SUBPLZ_WEB_CAPTION_API_KEY choose it.
+
+The server takes the seconds of a piece before it calls the speech service,
+and gives them back if the service fails. So two requests at the same time cannot spend one second
 twice. The server does not keep the sound or the text.
 
 A pack is a pricing.Plan, so payments.py sells it the same way as a book pack.
@@ -145,7 +149,7 @@ class TranscribeError(RuntimeError):
 
 
 def transcribe(pcm: bytes, language: str) -> str:
-    """Send one piece of speech to Groq. Returns its text."""
+    """Send one piece of speech to the speech service. Returns its text."""
     boundary = secrets.token_hex(16)
     fields = [("model", settings.caption_model), ("response_format", "json"),
               ("temperature", "0")]
@@ -161,7 +165,7 @@ def transcribe(pcm: bytes, language: str) -> str:
     body.write(f"\r\n--{boundary}--\r\n".encode())
     request = urllib.request.Request(
         settings.caption_api_url, data=body.getvalue(), method="POST",
-        headers={"Authorization": f"Bearer {settings.groq_api_key}",
+        headers={"Authorization": f"Bearer {settings.caption_api_key}",
                  "Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
     try:
@@ -188,7 +192,7 @@ def _state(session: Session, account: Account) -> dict:
     return {
         "account_id": account.id,
         "seconds_left": seconds_left(session, account.id),
-        "available": bool(settings.groq_api_key) and settings.payments_configured,
+        "available": bool(settings.caption_api_key) and settings.payments_configured,
         "packs": [
             {"id": p.id, "name": p.name, "hours": HOURS[p.id],
              "price_display": p.price_display}
@@ -232,7 +236,7 @@ async def caption_transcribe(
     lang: Annotated[str, Query(max_length=8)] = "auto",
 ):
     """The body is one piece of speech: 16 kHz mono 16-bit little-endian PCM."""
-    if not settings.groq_api_key:
+    if not settings.caption_api_key:
         raise HTTPException(503, "Cloud captions are not set up on this server.")
     pcm = await request.body()
     if not pcm or len(pcm) % 2:

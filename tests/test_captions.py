@@ -22,9 +22,9 @@ SECOND = captions.BYTES_PER_SECOND
 
 
 @pytest.fixture
-def groq(monkeypatch):
-    """A server with a Groq key, and Groq faked: it answers with a fixed text."""
-    monkeypatch.setattr(settings, "groq_api_key", "gsk_test")
+def speech(monkeypatch):
+    """A server with a key, and the speech service faked: it answers with a fixed text."""
+    monkeypatch.setattr(settings, "caption_api_key", "gsk_test")
     calls = []
 
     def fake(pcm, language):
@@ -102,33 +102,33 @@ def test_a_merge_moves_the_hours(client, second_client):
 # --- transcribe --------------------------------------------------------------
 
 def test_no_key_on_the_server_is_503(client, monkeypatch):
-    monkeypatch.setattr(settings, "groq_api_key", "")
+    monkeypatch.setattr(settings, "caption_api_key", "")
     give(client, HOUR)
     assert post_piece(client, 3 * SECOND).status_code == 503
     assert left(client) == HOUR
 
 
-def test_no_hours_is_402_and_groq_is_not_called(client, groq):
+def test_no_hours_is_402_and_the_service_is_not_called(client, speech):
     assert post_piece(client, 3 * SECOND).status_code == 402
-    assert groq == []
+    assert speech == []
 
 
-def test_a_piece_costs_its_length_rounded_up(client, groq):
+def test_a_piece_costs_its_length_rounded_up(client, speech):
     give(client, 60)
     r = post_piece(client, int(2.5 * SECOND))
     assert r.status_code == 200
     assert r.json() == {"text": "こんにちは", "seconds": 3, "seconds_left": 57}
-    assert groq == [(int(2.5 * SECOND), "ja")]
+    assert speech == [(int(2.5 * SECOND), "ja")]
 
 
-def test_the_last_seconds_do_not_pay_for_a_longer_piece(client, groq):
+def test_the_last_seconds_do_not_pay_for_a_longer_piece(client, speech):
     give(client, 2)
     assert post_piece(client, 3 * SECOND).status_code == 402
     assert left(client) == 2
 
 
-def test_a_failure_of_groq_gives_the_seconds_back(client, monkeypatch):
-    monkeypatch.setattr(settings, "groq_api_key", "gsk_test")
+def test_a_failure_of_the_service_gives_the_seconds_back(client, monkeypatch):
+    monkeypatch.setattr(settings, "caption_api_key", "gsk_test")
 
     def down(pcm, language):
         raise captions.TranscribeError("speech service answered 500")
@@ -140,10 +140,10 @@ def test_a_failure_of_groq_gives_the_seconds_back(client, monkeypatch):
 
 
 @pytest.mark.parametrize("n_bytes, status", [(0, 400), (3, 400), (31 * SECOND, 413)])
-def test_a_bad_piece_is_refused_without_cost(client, groq, n_bytes, status):
+def test_a_bad_piece_is_refused_without_cost(client, speech, n_bytes, status):
     give(client, HOUR)
     assert post_piece(client, n_bytes).status_code == status
-    assert left(client) == HOUR and groq == []
+    assert left(client) == HOUR and speech == []
 
 
 # --- properties --------------------------------------------------------------
@@ -182,8 +182,8 @@ def test_the_billed_seconds_cover_the_piece(n_bytes):
 
 
 
-def test_the_request_to_groq_is_the_openai_form(monkeypatch):
-    """transcribe() against a local server that reads the form as Groq does."""
+def test_the_request_is_the_openai_form(monkeypatch):
+    """transcribe() against a local server that reads the form as the service does."""
     import json
     import threading
     from email.parser import BytesParser
@@ -192,7 +192,7 @@ def test_the_request_to_groq_is_the_openai_form(monkeypatch):
 
     seen = {}
 
-    class Groq(BaseHTTPRequestHandler):
+    class Service(BaseHTTPRequestHandler):
         def do_POST(self):
             body = self.rfile.read(int(self.headers["Content-Length"]))
             head = f"Content-Type: {self.headers['Content-Type']}\r\n\r\n".encode()
@@ -209,15 +209,15 @@ def test_the_request_to_groq_is_the_openai_form(monkeypatch):
         def log_message(self, *args):
             pass
 
-    server = HTTPServer(("127.0.0.1", 0), Groq)
+    server = HTTPServer(("127.0.0.1", 0), Service)
     threading.Thread(target=server.handle_request, daemon=True).start()
     monkeypatch.setattr(settings, "caption_api_url", f"http://127.0.0.1:{server.server_port}/")
-    monkeypatch.setattr(settings, "groq_api_key", "gsk_test")
+    monkeypatch.setattr(settings, "caption_api_key", "gsk_test")
     pcm = bytes(range(256)) * 10
 
     assert captions.transcribe(pcm, "ja") == "今日は"
     server.server_close()
     assert seen["auth"] == "Bearer gsk_test"
-    assert seen["model"] == b"whisper-large-v3-turbo"
+    assert seen["model"] == b"openai/whisper-large-v3-turbo"
     assert seen["language"] == b"ja"
     assert seen["file"] == captions.wav(pcm)
