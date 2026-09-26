@@ -141,6 +141,13 @@ class Settings(BaseSettings):
     # The longest piece of speech in one request. The app sends 11 s at most.
     caption_max_seconds: int = 30
 
+    # --- Google Play (Subrep Play build) ------------------------------------
+    # The path of the JSON key of a service account that can read and consume
+    # the orders of Subrep in Play Console. Keep the file outside the checkout,
+    # owned by the service user, with mode 600. Without the file, the server
+    # tells the Play build that it cannot sell hours (play_available).
+    play_service_account_file: str = ""
+
     # --- Subrep Pro -------------------------------------------------------
     # The Ed25519 key that signs the licences of the Subrep desktop app
     # (base64url of the 32-byte private key). Without it, Subrep Pro is not
@@ -159,6 +166,11 @@ class Settings(BaseSettings):
     @property
     def payments_configured(self) -> bool:
         return bool(self.stripe_secret_key)
+
+    @property
+    def play_configured(self) -> bool:
+        path = self.play_service_account_file
+        return bool(path) and Path(path).is_file()
 
     @property
     def email_configured(self) -> bool:

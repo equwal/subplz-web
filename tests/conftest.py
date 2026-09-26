@@ -23,6 +23,8 @@ os.environ.update(
     SUBPLZ_WEB_PUBLIC_BASE_URL="https://example.test",
     SUBPLZ_WEB_MATCH_CHECK="false",
     SUBPLZ_WEB_SMTP_HOST="",
+    # No test may use a real Google Play key from a .env file.
+    SUBPLZ_WEB_PLAY_SERVICE_ACCOUNT_FILE="",
 )
 
 import pytest  # noqa: E402
