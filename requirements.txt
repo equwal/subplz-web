@@ -17,6 +17,11 @@ stripe>=13
 # desktop app checks. The standard library has no Ed25519.
 cryptography>=42
 
+# Google Play purchases of Subrep hours (backend/play.py). google-auth signs the
+# service-account token of the Play Developer API. The standard library has no
+# OAuth 2 signer.
+google-auth[requests]>=2.58
+
 # --- public deployment extras (not needed on localhost) ---
 # redis>=5.0          # SUBPLZ_WEB_QUEUE_BACKEND=redis
 # rq>=1.16            # external worker processes

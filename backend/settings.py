@@ -145,7 +145,8 @@ class Settings(BaseSettings):
     # The path of the JSON key of a service account that can read and consume
     # the orders of Subrep in Play Console. Keep the file outside the checkout,
     # owned by the service user, with mode 600. Without the file, the server
-    # tells the Play build that it cannot sell hours (play_available).
+    # tells the Play build that it cannot sell hours (play_available), and
+    # POST /api/captions/play-purchase answers 503. See play.py.
     play_service_account_file: str = ""
 
     # --- Subrep Pro -------------------------------------------------------
