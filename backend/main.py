@@ -104,7 +104,8 @@ async def lifespan(_: FastAPI):
 
 
 def housekeeping() -> None:
-    """One pass of the hourly housekeeping: let go of abandoned browser jobs.
+    """One pass of the hourly housekeeping: let go of abandoned browser jobs,
+    and take back the hours of Google Play purchases that Google refunded.
 
     It deletes no file. The server keeps each upload and each result for
     debugging, and the operator deletes them by hand.
@@ -113,6 +114,9 @@ def housekeeping() -> None:
 
     with SessionLocal() as s:
         expire_stale_local_jobs(s)
+    if settings.play_configured:
+        with SessionLocal() as s:
+            play.take_back_voided(s)
 
 
 async def _housekeeping() -> None:

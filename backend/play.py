@@ -9,6 +9,10 @@ Google for the purchase, adds the hours of the pack to the account once, and
 consumes the purchase, so that the user can buy the pack again. The app never
 consumes. If this server does not answer, the app sends the purchase again at
 its next start.
+
+A buyer can get a refund from Google without the owner. So each hour,
+main.housekeeping asks Google for the purchases that it refunded or charged
+back, and this module takes their hours back once.
 """
 from __future__ import annotations
 
@@ -21,7 +25,16 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    case,
+    select,
+    update,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -77,6 +90,10 @@ class PlayPurchase(Base):
     order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
+    )
+    # The time when this server took the hours back after a refund or a chargeback.
+    voided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 
@@ -150,6 +167,25 @@ def consume(product_id: str, token: str) -> None:
     _call("POST", _url(product_id, token) + ":consume")
 
 
+def voided() -> list[str]:
+    """The tokens of the in-app purchases that Google voided in the last 30 days.
+
+    A refund or a chargeback voids a purchase. 30 days is the default and the
+    longest time of the API, so a missed hour loses nothing.
+    """
+    tokens: list[str] = []
+    page = ""
+    while True:
+        url = f"{API}/{PACKAGE}/purchases/voidedpurchases"
+        if page:
+            url += f"?token={quote(page, safe='')}"
+        body = _call("GET", url).json()
+        tokens += [v["purchaseToken"] for v in body.get("voidedPurchases", [])]
+        page = (body.get("tokenPagination") or {}).get("nextPageToken", "")
+        if not page:
+            return tokens
+
+
 # ---------------------------------------------------------------------------
 # the credit
 # ---------------------------------------------------------------------------
@@ -197,6 +233,59 @@ def credit(session: Session, account: Account, product_id: str, token: str,
              purchase.get("orderId") or "(no order id)", product_id, quantity,
              account.id, " (test)" if test else "")
     return True
+
+
+# ---------------------------------------------------------------------------
+# refunds
+# ---------------------------------------------------------------------------
+
+def take_back(session: Session, tokens: list[str]) -> int:
+    """Take back the hours of each voided purchase in `tokens`, once.
+
+    The hours come from the account that has them now, after any merge. A
+    balance never goes below zero, so the hours that the buyer used are lost.
+    Return the number of purchases that this call took back.
+    """
+    hashes = {_hash(t) for t in tokens}
+    if not hashes:
+        return 0
+    rows = session.scalars(select(PlayPurchase).where(
+        PlayPurchase.token_hash.in_(hashes), PlayPurchase.voided_at.is_(None))).all()
+    balance = captions.CaptionBalance
+    taken = 0
+    for row in rows:
+        # Mark the row only if no other pass marked it first. Then two passes
+        # at the same time take the hours back once.
+        marked = session.execute(
+            update(PlayPurchase)
+            .where(PlayPurchase.id == row.id, PlayPurchase.voided_at.is_(None))
+            .values(voided_at=utcnow())
+        ).rowcount
+        if marked != 1:
+            continue
+        owner = accounts.resolve(session, session.get(Account, row.account_id))
+        # One UPDATE, like captions.spend: a credit or a spend at the same time
+        # cannot write over it.
+        session.execute(
+            update(balance)
+            .where(balance.account_id == owner.id)
+            .values(seconds_left=case(
+                (balance.seconds_left > row.seconds, balance.seconds_left - row.seconds),
+                else_=0))
+        )
+        taken += 1
+        log.info("voided play purchase %s: took back up to %d s from %s",
+                 row.order_id or "(no order id)", row.seconds, owner.id)
+    session.commit()
+    return taken
+
+
+def take_back_voided(session: Session) -> None:
+    """One pass of main.housekeeping. A failure waits for the next hour."""
+    try:
+        take_back(session, voided())
+    except PlayError as exc:
+        log.warning("could not read the voided Play purchases: %s", exc.detail)
 
 
 # ---------------------------------------------------------------------------
