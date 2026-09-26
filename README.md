@@ -458,6 +458,46 @@ Not handled: refunds and disputes (do them in the Stripe dashboard and adjust
 `purchased_credits` by hand), and tax (Stripe Tax is one checkout parameter away
 once you are registered somewhere).
 
+#### Google Play purchases (Subrep)
+
+Google Play requires its own billing for digital goods. So the Google Play
+build of Subrep sells the hour packs of `backend/captions.py` with Google Play
+Billing. The Play product ids are the pack ids: `captions20`, `captions80` and
+`captions200`. The GitHub build of Subrep still sells the packs with Stripe.
+
+The app sends each purchase to `POST /api/captions/play-purchase`, with its
+device cookie. The server asks the Google Play Developer API for the purchase.
+It adds the hours of the pack to the account once, and then it consumes the
+purchase. The app never consumes. The table `play_purchases` keeps the SHA-256
+of each purchase token, not the token.
+
+A buyer can get a refund from Google without you. Each hour, the housekeeping
+pass reads the purchases that Google refunded or charged back in the last 30
+days. It takes the hours of each one back from the account, once. A balance
+never goes below zero, so the hours that the buyer used stay used.
+
+To turn it on:
+
+1. In Play Console, create the one-time products `captions20`, `captions80`
+   and `captions200`, each with one Buy option and a price.
+2. Activate each product.
+3. In Google Cloud, enable the Google Play Android Developer API.
+4. Create a service account and a JSON key for it. Keep the key out of each
+   repository and each chat.
+5. In Play Console, open Users and permissions and invite the email of the
+   service account.
+6. For Subrep, grant View financial data and Manage orders and subscriptions.
+   The access can take some hours to start.
+7. On the server, put the key at `/etc/subplz-web/play-service-account.json`,
+   owned by `subplz`, with mode 600.
+8. Add `SUBPLZ_WEB_PLAY_SERVICE_ACCOUNT_FILE=/etc/subplz-web/play-service-account.json`
+   to `.env`.
+9. Restart the server.
+
+The server reads the key file once. After you replace the file, restart the
+server. Without the file, `GET /api/captions` shows `"play_available": false`,
+the Play build shows no packs, and the endpoint answers 503.
+
 ---
 
 ## Releases
