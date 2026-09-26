@@ -529,6 +529,29 @@ restarts at 0% for every chapter.
 Single files longer than about four hours can exhaust RAM, per upstream. Prefer
 chaptered `m4b`, or a folder of per-chapter files.
 
+## More projects
+
+- SubRead is also [for Android](https://github.com/equwal/subread-android/releases/latest),
+  [for YouTube](https://github.com/equwal/subread-extension/releases/latest)
+  and [for KOReader](https://github.com/equwal/subread.koplugin).
+- [SubRead Overlay](https://github.com/equwal/subread-overlay/releases/latest): subtitle lines over any Android media player.
+- [SubRead Dictionary](https://github.com/equwal/subread-dictionary/releases/latest): a pop-up dictionary for Android that reads Yomitan dictionaries.
+- [SubRead Anki](https://github.com/equwal/subread-anki): one tap makes an Anki card from any Android app.
+- [Subrep](https://github.com/equwal/subrep-android/releases/latest): live captions of the sound of your phone.
+- [Book Simulator](https://booksimulator.com/): a reading room for Aozora Bunko and Project Gutenberg books.
+- [honjimaku.com](https://honjimaku.com/): subtitles for Japanese audiobooks.
+- [sbm Sync](https://sbmsync.com/): your bookmarks, the same on every device,
+  with [sbm](https://github.com/equwal/sbm) for dmenu,
+  [sbm for Android](https://github.com/equwal/sbm-android/releases/latest)
+  and the [sbm add-on](https://github.com/equwal/sbm-extension/releases/latest) for Firefox and Chrome.
+- [Rebind](https://github.com/equwal/rebind/releases): remap the hardware buttons of e-ink readers and Android,
+  with [Ink Recents](https://github.com/equwal/ink-recents/releases/latest),
+  [Ink Dim](https://github.com/equwal/ink-dim/releases/latest)
+  and [Ink Update](https://github.com/equwal/ink-update/releases/latest).
+- [dickt.store](https://dickt.store/): language-learning tools, flashcards and web toys.
+- [hentaibun.online](https://hentaibun.online/): learn kanbun and kobun.
+- [Recently Written](https://recentlywritten.com/): the blog, and a list of [all projects](https://recentlywritten.com/projects.html).
+
 ## Licence
 
 AGPL-3.0: see `LICENSE`. You may use, change and host this, and you must give
