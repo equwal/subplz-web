@@ -18,6 +18,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, create_engine, func, insert, select
 
+# The runbook runs this tool in a new interpreter. There, Base.metadata holds
+# only the tables of the modules that Python imported. backend.main imports
+# every model module, as the app does, so the copy gets every table.
+import backend.main  # noqa: F401
 from backend.db import Base
 
 BATCH = 1000

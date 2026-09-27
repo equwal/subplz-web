@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import Session
 
+from backend.captions import CaptionBalance
 from backend.db import Account, Artifact, Base, Job, JobStatus, Purchase
+from backend.subrep import SubrepLicence, WaitlistEntry
 from tools.copy_database import copy_database
 
 T0 = datetime(2026, 9, 22, tzinfo=timezone.utc)
@@ -81,3 +87,30 @@ def test_the_copy_refuses_a_target_with_rows(tmp_path):
             s.commit()
     with pytest.raises(RuntimeError, match="accounts"):
         copy_database(source, target)
+
+
+def test_the_command_copies_the_tables_of_every_model_module(tmp_path):
+    """The burst runbook runs the tool in a new interpreter. There, only the
+    modules that the tool imports put their tables in Base.metadata. This test
+    process imported backend.main already (conftest), so only a subprocess
+    shows a model module that the tool does not import."""
+    source, target = f"sqlite:///{tmp_path / 'source.db'}", f"sqlite:///{tmp_path / 'target.db'}"
+    engine = create_engine(source)
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(Account(id="acct_1", device_token="dev_1", email="reader@example.com"))
+        s.add(CaptionBalance(account_id="acct_1", seconds_left=20 * 3600, seconds_used=60))
+        s.add(SubrepLicence(account_id="acct_1", refresh_key="key_1", subscription_id="sub_1",
+                            status="active", plan_id="subrep_year", period_end=T0))
+        s.add(WaitlistEntry(kind="ios", email="reader@example.com", account_id="acct_1"))
+        s.commit()
+
+    env = {**os.environ, "SUBPLZ_WEB_DATA_DIR": str(tmp_path)}
+    root = Path(__file__).resolve().parent.parent
+    out = subprocess.run([sys.executable, "-m", "tools.copy_database", source, target],
+                         cwd=root, env=env, capture_output=True, text=True, timeout=120,
+                         check=False)
+    assert out.returncode == 0, out.stderr
+
+    assert set(Base.metadata.tables) <= set(inspect(create_engine(target)).get_table_names())
+    assert rows(target) == rows(source)
