@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import io
 import wave
+from contextlib import contextmanager
 
 import pytest
 import stripe
 from hypothesis import given
 from hypothesis import settings as hsettings
 from hypothesis import strategies as st
+from sqlalchemy import event
 
 from backend import accounts, captions
 from backend.db import Account, SessionLocal
@@ -166,6 +168,64 @@ def test_the_balance_never_goes_below_zero_and_no_second_is_lost(given_seconds, 
             s.refresh(row)
             assert row.seconds_left >= 0
             assert row.seconds_left + row.seconds_used == given_seconds
+
+
+@contextmanager
+def before_the_first_write(action):
+    """Run `action` in another session, and commit it, just before the first
+    INSERT or UPDATE of caption_balances.
+
+    Postgres lets another transaction commit between a SELECT and a later
+    write of a transaction (READ COMMITTED). SQLite lets it only while the
+    transaction has not written yet, so a test must call add in a new
+    transaction to see that race on SQLite.
+    """
+    engine = SessionLocal.kw["bind"]
+    results = []
+
+    def before(conn, cursor, statement, parameters, context, executemany):
+        if not results and statement.startswith(
+                ("INSERT INTO caption_balances", "UPDATE caption_balances")):
+            results.append(None)  # the other session writes too
+            with SessionLocal() as other:
+                results[0] = action(other)
+                other.commit()
+
+    event.listen(engine, "before_cursor_execute", before)
+    try:
+        yield results
+    finally:
+        event.remove(engine, "before_cursor_execute", before)
+
+
+@hsettings(max_examples=50, deadline=None)
+@given(start=st.none() | st.integers(0, 100), ours=st.integers(1, 100),
+       theirs=st.integers(1, 100), spend=st.booleans())
+def test_a_credit_loses_no_credit_or_spend_of_another_session(start, ours, theirs, spend):
+    """Another session gives or spends `theirs` seconds while add gives `ours`.
+    With `start` None, the account has no row yet."""
+    with SessionLocal() as s:
+        acct = accounts.new_account(s).id
+        s.commit()
+        if start is not None:
+            captions.add(s, acct, start)
+            s.commit()
+
+    def other(session):
+        if spend:
+            return captions.spend(session, acct, theirs)
+        return captions.add(session, acct, theirs)
+
+    with SessionLocal() as s, before_the_first_write(other) as done:
+        captions.add(s, acct, ours)
+        s.commit()
+
+    assert done
+    spent = theirs if spend and done == [True] else 0
+    credited = (start or 0) + ours + (0 if spend else theirs)
+    with SessionLocal() as s:
+        row = s.get(captions.CaptionBalance, acct)
+        assert (row.seconds_left, row.seconds_used) == (credited - spent, spent)
 
 
 @given(st.binary(max_size=4 * SECOND).filter(lambda b: len(b) % 2 == 0))
