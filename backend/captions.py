@@ -41,6 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import ForeignKey, Integer, String, update
+from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .api import get_account, get_session
@@ -59,6 +60,9 @@ PACKS: list[Plan] = [
     Plan(id="captions200", name="200 hours of cloud captions", credits=0, price_cents=3900),
 ]
 HOURS = {"captions20": 20, "captions80": 80, "captions200": 200}
+
+# INSERT ... ON CONFLICT is not standard SQL, so SQLAlchemy has one for each database.
+_INSERT = {"postgresql": postgresql.insert, "sqlite": sqlite.insert}
 
 
 class CaptionBalance(Base):
@@ -83,12 +87,23 @@ def seconds_left(session: Session, account_id: str) -> int:
 
 
 def add(session: Session, account_id: str, seconds: int) -> None:
-    """Give `seconds` to the account. The caller commits."""
-    row = session.get(CaptionBalance, account_id)
-    if row is None:
-        row = CaptionBalance(account_id=account_id, seconds_left=0, seconds_used=0)
-        session.add(row)
-    row.seconds_left += seconds
+    """Give `seconds` to the account. The caller commits.
+
+    The database does each step in one statement, as in spend: the INSERT
+    makes a missing row, and the UPDATE adds to the row. A sum made in Python
+    could lose a credit or a spend of another transaction on Postgres.
+    """
+    insert = _INSERT[session.get_bind().dialect.name]
+    session.execute(
+        insert(CaptionBalance)
+        .values(account_id=account_id, seconds_left=0, seconds_used=0)
+        .on_conflict_do_nothing(index_elements=[CaptionBalance.account_id])
+    )
+    session.execute(
+        update(CaptionBalance)
+        .where(CaptionBalance.account_id == account_id)
+        .values(seconds_left=CaptionBalance.seconds_left + seconds)
+    )
 
 
 def spend(session: Session, account_id: str, seconds: int) -> bool:
