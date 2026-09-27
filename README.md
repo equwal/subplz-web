@@ -489,14 +489,18 @@ To turn it on:
 6. For Subrep, grant View financial data and Manage orders and subscriptions.
    The access can take some hours to start.
 7. On the server, put the key at `/etc/subplz-web/play-service-account.json`,
-   owned by `subplz`, with mode 600.
+   owned by `subplz`, with mode 600. The user `subplz` must also be able to
+   open the folder `/etc/subplz-web`, for example with owner `subplz` and
+   mode 700.
 8. Add `SUBPLZ_WEB_PLAY_SERVICE_ACCOUNT_FILE=/etc/subplz-web/play-service-account.json`
    to `.env`.
 9. Restart the server.
+10. Make sure that `GET /api/captions` shows `"play_available": true`.
 
 The server reads the key file once. After you replace the file, restart the
-server. Without the file, `GET /api/captions` shows `"play_available": false`,
-the Play build shows no packs, and the endpoint answers 503.
+server. If `subplz` cannot read the file, `GET /api/captions` shows
+`"play_available": false`, the Play build shows no packs, and the endpoint
+answers 503.
 
 ---
 

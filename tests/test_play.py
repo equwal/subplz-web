@@ -6,9 +6,12 @@ play.voided, and the tests of the HTTP layer give play._session a fake session.
 
 from __future__ import annotations
 
+import errno
 import itertools
 import json
 import logging
+import os
+import pathlib
 import secrets
 from urllib.parse import unquote
 
@@ -140,6 +143,59 @@ def test_the_play_build_can_sell_only_when_the_server_can_check_purchases(
 
     monkeypatch.setattr(settings, "caption_api_key", "")
     assert client.get("/api/captions").json()["play_available"] is False
+
+
+def assert_only_the_play_sales_stop(client, google):
+    """The Play build sells nothing. The GitHub build still sells with Stripe."""
+    token = new_token()
+    google.buy(token, account_id(client))
+    state = client.get("/api/captions")
+    assert state.status_code == 200
+    assert (state.json()["play_available"], state.json()["available"]) == (False, True)
+    r = post_play(client, token)
+    assert r.status_code == 503 and r.json()["detail"] == play.NOT_SET_UP
+    assert google.gets == []
+
+
+def test_a_key_folder_that_the_server_cannot_open_stops_only_the_play_sales(
+        client, google, monkeypatch, tmp_path):
+    # The service user cannot open the folder of the key, so stat of the key
+    # fails with EACCES. The server runs Python 3.11. There, Path.is_file
+    # raises PermissionError for this error, and each GET /api/captions
+    # answered 500. The tests can run on a newer Python, so this test makes
+    # Path.is_file act as on Python 3.11. The test does not make the key file:
+    # os.path.isfile gives False for each stat error, EACCES or ENOENT.
+    key = str(tmp_path / "locked" / "play-key.json")
+    is_file = pathlib.Path.is_file
+
+    def is_file_on_python_3_11(self, *args, **kwargs):
+        if str(self) == key:
+            raise PermissionError(errno.EACCES, "Permission denied", key)
+        return is_file(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "is_file", is_file_on_python_3_11)
+    monkeypatch.setattr(settings, "play_service_account_file", key)
+    monkeypatch.setattr(settings, "caption_api_key", "dg_test")
+    assert_only_the_play_sales_stop(client, google)
+    main.housekeeping()  # The hourly pass does not fail.
+
+
+def test_a_key_file_that_the_server_cannot_read_stops_only_the_play_sales(
+        client, google, monkeypatch):
+    # The key is there, but the service user cannot read it. For example, root
+    # owns it with mode 600. Then the server cannot check a purchase, so the
+    # Play build must not sell.
+    key = settings.play_service_account_file
+    access = os.access
+
+    def access_of_the_service_user(path, mode, *args, **kwargs):
+        if os.fspath(path) == key and mode & os.R_OK:
+            return False
+        return access(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(os, "access", access_of_the_service_user)
+    monkeypatch.setattr(settings, "caption_api_key", "dg_test")
+    assert_only_the_play_sales_stop(client, google)
 
 
 # --- POST /api/captions/play-purchase -----------------------------------------

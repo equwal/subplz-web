@@ -1,5 +1,6 @@
 """Configuration. Every scale-out seam is an env var with a localhost-friendly default."""
 
+import os
 import shutil
 from pathlib import Path
 from typing import Literal
@@ -144,7 +145,8 @@ class Settings(BaseSettings):
     # --- Google Play (Subrep Play build) ------------------------------------
     # The path of the JSON key of a service account that can read and consume
     # the orders of Subrep in Play Console. Keep the file outside the checkout,
-    # owned by the service user, with mode 600. Without the file, the server
+    # owned by the service user, with mode 600, in a folder that the service
+    # user can open. If the service user cannot read the file, the server
     # tells the Play build that it cannot sell hours (play_available), and
     # POST /api/captions/play-purchase answers 503. See play.py.
     play_service_account_file: str = ""
@@ -170,8 +172,12 @@ class Settings(BaseSettings):
 
     @property
     def play_configured(self) -> bool:
+        # Do not use Path.is_file here. On Python 3.11, it raises
+        # PermissionError when the service user cannot open the folder of the
+        # key, and then each GET /api/captions answers 500. os.path.isfile
+        # gives False for each error.
         path = self.play_service_account_file
-        return bool(path) and Path(path).is_file()
+        return bool(path) and os.path.isfile(path) and os.access(path, os.R_OK)
 
     @property
     def email_configured(self) -> bool:
