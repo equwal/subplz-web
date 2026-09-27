@@ -38,7 +38,13 @@ class FakeGooglePlay:
 
     def __init__(self):
         self.purchases: dict[str, dict] = {}
+        # The consumes that came after the server committed the ledger row.
         self.consumed: list[str] = []
+        # The consumes that came before that commit. The fixture `google`
+        # fails each test that makes one: if the commit fails after the
+        # consume, the buyer paid, and Google closed the purchase, but the
+        # account has no hours.
+        self.early: list[str] = []
         self.gets: list[tuple[str, str]] = []
         self.down = False
         self.fail_consume = 0
@@ -76,7 +82,7 @@ class FakeGooglePlay:
         if self.fail_consume:
             self.fail_consume -= 1
             raise play.PlayError(502, play.NO_ANSWER)
-        self.consumed.append(token)
+        (self.consumed if ledger(token) else self.early).append(token)
         self.purchases[token]["consumptionState"] = 1
 
     def voided(self) -> list[str]:
@@ -102,7 +108,8 @@ def google(monkeypatch, tmp_path):
     key = tmp_path / "play-key.json"
     key.write_text("{}")  # play.get is fake, so nothing reads the key.
     monkeypatch.setattr(settings, "play_service_account_file", str(key))
-    return fake
+    yield fake
+    assert fake.early == [], "the server consumed a purchase before it committed its hours"
 
 
 def new_token() -> str:
@@ -304,6 +311,27 @@ def test_a_failed_consume_keeps_the_hours_and_the_next_call_consumes(client, goo
 
     assert post_play(client, token).status_code == 200
     assert google.consumed == [token] and left(client) == 20 * HOUR
+
+
+def test_a_failed_credit_leaves_no_row_and_no_consume(client, google, monkeypatch):
+    # The ledger row and the hours go in one commit, and the consume comes
+    # after that commit. So when the database stops between the row and the
+    # hours, Google keeps the purchase open, and the next send gives the hours.
+    token = new_token()
+    google.buy(token, account_id(client))
+    add = captions.add
+
+    def database_stops(*args):
+        raise RuntimeError("the database stopped")
+
+    monkeypatch.setattr(captions, "add", database_stops)
+    with pytest.raises(RuntimeError):
+        post_play(client, token)
+    assert ledger(token) == [] and google.consumed == [] and google.early == []
+
+    monkeypatch.setattr(captions, "add", add)
+    assert post_play(client, token).status_code == 200
+    assert left(client) == 20 * HOUR and google.consumed == [token]
 
 
 def test_no_answer_from_google_gives_nothing(client, google):
