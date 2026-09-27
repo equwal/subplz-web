@@ -142,6 +142,10 @@ def _call(method: str, url: str):
         with _session() as http:
             response = http.request(method, url, timeout=15)
     except exceptions.RefreshError as exc:
+        # A retryable error is a temporary failure of the Google token server,
+        # for example 503 after the retries of google-auth. The key can be good.
+        if exc.retryable:
+            raise PlayError(502, NO_ANSWER) from exc
         log.error("Google refused the Play key: %s", type(exc).__name__)
         raise PlayError(503, NOT_SET_UP) from exc
     except (requests.RequestException, exceptions.TransportError) as exc:

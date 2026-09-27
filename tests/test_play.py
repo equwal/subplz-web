@@ -472,12 +472,17 @@ def test_google_errors_become_clear_answers(http, google_status, status):
     requests.ConnectionError("no route to host"),
     requests.Timeout("read timed out"),
     google_errors.TransportError("no route to the token server"),
+    # google-auth raises this after its own retries, when the Google token
+    # server answers 408, 429, 500, 503 or 504.
+    google_errors.RefreshError("temporarily_unavailable", retryable=True),
 ])
-def test_no_connection_to_google_is_502(http, error):
+def test_no_connection_to_google_is_502(http, error, caplog):
     http.answers = [error]
     with pytest.raises(play.PlayError) as caught:
         play.get("captions20", "abc")
-    assert caught.value.status == 502
+    assert (caught.value.status, caught.value.detail) == (502, play.NO_ANSWER)
+    # The key can be good. So the log must not tell the operator that Google refused it.
+    assert [r for r in caplog.records if r.levelno >= logging.ERROR] == []
 
 
 def test_a_key_that_google_refuses_is_503(http):
