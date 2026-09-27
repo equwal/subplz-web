@@ -1,5 +1,6 @@
 """Configuration. Every scale-out seam is an env var with a localhost-friendly default."""
 
+import os
 import shutil
 from pathlib import Path
 from typing import Literal
@@ -141,6 +142,15 @@ class Settings(BaseSettings):
     # The longest piece of speech in one request. The app sends 11 s at most.
     caption_max_seconds: int = 30
 
+    # --- Google Play (Subrep Play build) ------------------------------------
+    # The path of the JSON key of a service account that can read and consume
+    # the orders of Subrep in Play Console. Keep the file outside the checkout,
+    # owned by the service user, with mode 600, in a folder that the service
+    # user can open. If the service user cannot read the file, the server
+    # tells the Play build that it cannot sell hours (play_available), and
+    # POST /api/captions/play-purchase answers 503. See play.py.
+    play_service_account_file: str = ""
+
     # --- Subrep Pro -------------------------------------------------------
     # The Ed25519 key that signs the licences of the Subrep desktop app
     # (base64url of the 32-byte private key). Without it, Subrep Pro is not
@@ -159,6 +169,15 @@ class Settings(BaseSettings):
     @property
     def payments_configured(self) -> bool:
         return bool(self.stripe_secret_key)
+
+    @property
+    def play_configured(self) -> bool:
+        # Do not use Path.is_file here. On Python 3.11, it raises
+        # PermissionError when the service user cannot open the folder of the
+        # key, and then each GET /api/captions answers 500. os.path.isfile
+        # gives False for each error.
+        path = self.play_service_account_file
+        return bool(path) and os.path.isfile(path) and os.access(path, os.R_OK)
 
     @property
     def email_configured(self) -> bool:

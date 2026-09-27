@@ -208,6 +208,8 @@ def _state(session: Session, account: Account) -> dict:
         "account_id": account.id,
         "seconds_left": seconds_left(session, account.id),
         "available": bool(settings.caption_api_key) and settings.payments_configured,
+        # The Play build of Subrep sells with Google Play Billing, not with Stripe.
+        "play_available": bool(settings.caption_api_key) and settings.play_configured,
         "packs": [
             {"id": p.id, "name": p.name, "hours": HOURS[p.id],
              "price_display": p.price_display}
